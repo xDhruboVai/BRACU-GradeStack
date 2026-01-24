@@ -1,13 +1,11 @@
 import React, { useState } from 'react';
-import { Link, useNavigate } from 'react-router-dom';
+import { Link } from 'react-router-dom';
 import { supabase } from '../supabaseClient';
 import AuthLayout from '../components/AuthLayout';
 import '../styles/auth.css';
 
-export default function Login() {
-  const navigate = useNavigate();
+export default function ForgotPassword() {
   const [email, setEmail] = useState('');
-  const [password, setPassword] = useState('');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
@@ -17,27 +15,25 @@ export default function Login() {
     setError('');
     setSuccess('');
 
-    if (!email || !password) {
-      setError('Please enter both email and password.');
+    if (!email) {
+      setError('Please enter your email.');
       return;
     }
 
     setLoading(true);
-    const { data, error } = await supabase.auth.signInWithPassword({ email, password });
+    const redirectTo = `${window.location.origin}/reset`;
+    const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo });
+    setLoading(false);
 
     if (error) {
-      setLoading(false);
       setError(error.message);
-      return;
+    } else {
+      setSuccess('Password reset email sent. Please check your inbox.');
     }
-
-    setSuccess('Logged in successfully.');
-    navigate('/dashboard');
-    setLoading(false);
   };
 
   return (
-    <AuthLayout title="Welcome back" subtitle="Log in to GradeStack">
+    <AuthLayout title="Forgot password" subtitle="We'll email you a reset link">
       {error && <div className="error" role="alert">{error}</div>}
       {success && <div className="success" role="status">{success}</div>}
 
@@ -56,31 +52,13 @@ export default function Login() {
           />
         </div>
 
-        <label className="input-label" htmlFor="password">Password</label>
-        <div className="input-group">
-          <span className="input-icon">• • •</span>
-          <input
-            id="password"
-            className="input"
-            type="password"
-            placeholder="Your secure password"
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            autoComplete="current-password"
-          />
-        </div>
-
         <button className="button glow" type="submit" disabled={loading}>
-          {loading ? 'Signing in…' : 'Sign In'}
+          {loading ? 'Sending…' : 'Send Reset Link'}
         </button>
       </form>
 
       <div className="helper">
-        <span className="text-muted">New here?</span>
-        <Link className="link" to="/signup">Create an account</Link>
-      </div>
-      <div className="helper">
-        <Link className="link" to="/forgot">Forgot password?</Link>
+        <Link className="link" to="/login">Back to login</Link>
       </div>
     </AuthLayout>
   );

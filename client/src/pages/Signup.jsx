@@ -1,16 +1,20 @@
 import React, { useMemo, useState } from 'react';
-import { Link } from 'react-router-dom';
+import { Link, useNavigate } from 'react-router-dom';
+import axios from 'axios';
 import { supabase } from '../supabaseClient';
 import AuthLayout from '../components/AuthLayout';
 import '../styles/auth.css';
 
 export default function Signup() {
+  const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [confirmPassword, setConfirmPassword] = useState('');
+  const [major, setMajor] = useState('CSE');
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
+  const api = process.env.REACT_APP_API_URL || 'http://localhost:5001/api';
 
   const strength = useMemo(() => {
     let score = 0;
@@ -40,15 +44,21 @@ export default function Signup() {
     }
 
     setLoading(true);
-    const { error } = await supabase.auth.signUp({ email, password });
-    setLoading(false);
-
-    if (error) {
-      setError(error.message);
-    } else {
-      setSuccess('Account created. Please check your email to confirm.');
-      // Optionally redirect after confirmation is handled
-      // navigate('/login');
+    try {
+      // Create user via server (no confirmation), storing email + bcrypt hash
+      await axios.post(`${api}/auth/signup`, { email, password, major });
+      // Immediately sign in to establish Supabase session for RLS-protected APIs
+      const { error: signInErr } = await supabase.auth.signInWithPassword({ email, password });
+      if (signInErr) {
+        setSuccess('Account created. Please sign in.');
+      } else {
+        setSuccess('Account created. Redirecting…');
+        navigate('/dashboard');
+      }
+    } catch (err) {
+      setError(err?.response?.data?.error || err?.message || 'Signup failed');
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -103,6 +113,24 @@ export default function Signup() {
           />
         </div>
 
+        <div style={{ display: 'flex', alignItems: 'center', gap: '0.75rem', margin: '0.75rem 0' }}>
+          <span className="text-muted">Select major:</span>
+          <button
+            type="button"
+            className={`button glow${major === 'CSE' ? '' : ' outline'}`}
+            onClick={() => setMajor('CSE')}
+          >
+            CSE
+          </button>
+          <button
+            type="button"
+            className={`button glow${major === 'CS' ? '' : ' outline'}`}
+            onClick={() => setMajor('CS')}
+          >
+            CS
+          </button>
+          <span className="text-muted">Current: {major} (you can change this later)</span>
+        </div>
         <button className="button glow" type="submit" disabled={loading}>
           {loading ? 'Creating…' : 'Sign Up'}
         </button>

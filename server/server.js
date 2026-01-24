@@ -9,7 +9,24 @@ const PORT = process.env.PORT || 5000;
 
 // Middleware
 app.use(helmet());
-app.use(cors({ origin: process.env.CORS_ORIGIN }));
+// CORS: allow all origins in development to avoid local port mismatches
+const isDev = (process.env.NODE_ENV || 'development') !== 'production';
+if (isDev) {
+  app.use(cors({ origin: true }));
+} else {
+  const allowedOrigins = (process.env.CORS_ORIGIN || 'http://localhost:3000,http://localhost:3001')
+    .split(',')
+    .map((s) => s.trim());
+  app.use(
+    cors({
+      origin: function (origin, callback) {
+        if (!origin) return callback(null, true);
+        if (allowedOrigins.includes(origin)) return callback(null, true);
+        return callback(new Error('Not allowed by CORS'));
+      },
+    })
+  );
+}
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
 

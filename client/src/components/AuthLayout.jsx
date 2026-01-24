@@ -13,7 +13,7 @@ export default function AuthLayout({ title, subtitle, children }) {
     { title: 'Grades + Games = GG', copy: 'Min-max your semester like a skill tree for S-tier outcomes.' },
     { title: 'Checkpoint: Midterms', copy: 'Save progress early, avoid boss-level procrastination later.' },
     { title: 'No RNG, just GPA', copy: 'Plan with data, not dice rolls; precision beats luck.' },
-    { title: 'Homework crit chance +20%', copy: 'Equip focus, grind assignments, cash in the XP.' },
+    { title: 'Homework crit chance +20%', copy: 'Bhai please nijer assignment nije kor.' },
     { title: 'Curves belong on racetracks', copy: 'Beat the curve with prep and smart routing, not panic.' },
     { title: 'Final boss: Finals', copy: 'We’ll buff you with insights and perfectly timed cooldowns.' },
     { title: 'Speedrun your semester (responsibly)', copy: 'Route courses, optimize credits, skip the filler side quests.' },
