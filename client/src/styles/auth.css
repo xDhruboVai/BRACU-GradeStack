@@ -89,6 +89,29 @@
 }
 .hero-copy { color: var(--color-muted); margin-top: 0.75rem; max-width: 720px; }
 
+/* Smooth transition for rotating hero text */
+.hero-animated { animation: fadeSlide 480ms ease both; }
+@keyframes fadeSlide { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
+
+/* Crossfade stack for previous/current hero messages */
+.hero-stack { position: relative; min-height: 120px; }
+.hero-layer {
+  position: absolute;
+  inset: 0;
+  will-change: opacity, transform, filter;
+}
+.hero-in { animation: heroFadeIn var(--heroFadeMs, 900ms) cubic-bezier(.22,.61,.36,1) both; }
+.hero-out { animation: heroFadeOut var(--heroFadeMs, 900ms) cubic-bezier(.22,.61,.36,1) both; }
+
+@keyframes heroFadeIn {
+  from { opacity: 0; transform: translateY(8px); filter: blur(2px); }
+  to   { opacity: 1; transform: translateY(0);   filter: blur(0); }
+}
+@keyframes heroFadeOut {
+  from { opacity: 1; transform: translateY(0);   filter: blur(0); }
+  to   { opacity: 0; transform: translateY(-6px); filter: blur(2px); }
+}
+
 .brand-text { display: flex; flex-direction: column; }
 .brand-name { font-weight: 800; font-size: 1.25rem; }
 .brand-tag { color: var(--color-muted); font-size: 0.95rem; }
