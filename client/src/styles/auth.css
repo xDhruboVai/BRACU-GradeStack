@@ -254,3 +254,17 @@
   z-index: 1;
 }
 .footer-links { display: flex; gap: 1rem; }
+
+/* Dashboard panels */
+.panel {
+  background: rgba(255, 255, 255, 0.035);
+  border: 1px solid rgba(255, 255, 255, 0.08);
+  border-radius: 14px;
+  padding: 1rem 1.25rem;
+  box-shadow: 0 6px 24px rgba(0, 0, 0, 0.28), inset 0 1px 0 rgba(255, 255, 255, 0.06);
+  backdrop-filter: blur(8px);
+}
+.panel-title {
+  margin: 0 0 0.5rem 0;
+  font-size: 1.25rem;
+}

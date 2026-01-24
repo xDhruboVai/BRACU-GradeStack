@@ -40,28 +40,43 @@ export default function Dashboard() {
 
   return (
     <div className="auth-wrapper">
-      <div className="auth-card">
-        <h1 className="auth-title">Dashboard</h1>
-        <p className="auth-subtitle">Welcome{userEmail ? `, ${userEmail}` : ''}</p>
+      <div className="auth-card" style={{ paddingTop: '1rem' }}>
+        {/* Top-right sign out for a cleaner header */}
+        <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+          <button className="button" onClick={handleSignOut}>Sign Out</button>
+        </div>
 
-        <div style={{ display: 'grid', gap: '1rem', marginTop: '1rem' }}>
-          <section style={{ textAlign: 'left' }}>
-            <h3 style={{ margin: '0 0 0.5rem 0' }}>Upload Gradesheet</h3>
+        <div style={{ display: 'grid', gap: '1.25rem', marginTop: '0.5rem' }}>
+          {/* Section 1: Upload Gradesheet */}
+          <section className="panel" style={{ textAlign: 'left' }}>
+            <h3 className="panel-title">Upload Gradesheet</h3>
             <p className="text-muted">Upload a gradesheet to start analyzing.</p>
-            <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', marginTop: '0.75rem' }}>
-              <input type="file" accept="application/pdf" className="input" style={{ padding: '0.6rem' }} />
+            <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', marginTop: '0.75rem', flexWrap: 'wrap' }}>
+              <input type="file" accept="application/pdf" className="input" style={{ padding: '0.6rem', minWidth: '240px' }} />
               <button className="button glow" type="button" disabled>Upload (wired soon)</button>
               <span className="text-muted">Major:</span>
               <button type="button" className="button glow" onClick={() => setUserMajor('CSE')}>CSE</button>
               <button type="button" className="button glow" onClick={() => setUserMajor('CS')}>CS</button>
-              {major && <span className="text-muted">Current: {major}</span>}
+              {major && <span className="text-muted">Current: {major} (you can change this later)</span>}
             </div>
           </section>
 
-          <section style={{ display: 'flex', gap: '0.75rem' }}>
-            <Link className="button glow" to="/analyzer">Gradesheet Analyzer</Link>
-            <Link className="button glow" to="/marks-book">Marks Book</Link>
-            <button className="button" onClick={handleSignOut}>Sign Out</button>
+          {/* Section 2: Analyzer */}
+          <section className="panel" style={{ textAlign: 'left' }}>
+            <h3 className="panel-title">Gradesheet Analyzer</h3>
+            <p className="text-muted">View parsed results, retakes, and KPIs.</p>
+            <div style={{ marginTop: '0.75rem' }}>
+              <Link className="button glow" to="/analyzer">Open Analyzer</Link>
+            </div>
+          </section>
+
+          {/* Section 3: Marks Book */}
+          <section className="panel" style={{ textAlign: 'left' }}>
+            <h3 className="panel-title">Marks Book</h3>
+            <p className="text-muted">Plan ongoing assessments, targets, and track progress.</p>
+            <div style={{ marginTop: '0.75rem' }}>
+              <Link className="button glow" to="/marks-book">Open Marks Book</Link>
+            </div>
           </section>
         </div>
       </div>
