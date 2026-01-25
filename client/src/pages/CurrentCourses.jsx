@@ -51,12 +51,22 @@ export default function CurrentCourses() {
   };
 
   const save = async () => {
-    if (!userId || currentCourses.length === 0) return;
+    if (!userId) return;
+    // Build union of existing saved + pending additions, preserving new first then existing order
+    const existing = savedList.map((c) => String(c.course_code || '').toUpperCase());
+    const additions = currentCourses.map((c) => String(c || '').toUpperCase());
+    const combined = [...additions, ...existing.filter((c) => !additions.includes(c))];
+    const uniqueCombined = Array.from(new Set(combined));
+    if (uniqueCombined.length === 0) return;
+    if (uniqueCombined.length > 5) {
+      setToast({ type: 'error', text: '❌ Maximum 5 courses total' });
+      setTimeout(() => setToast(null), 3500);
+      return;
+    }
     try {
       setSaving(true);
-      const { data } = await axios.post(`${api}/marks/current-courses`, { userId, courseCodes: currentCourses });
+      const { data } = await axios.post(`${api}/marks/current-courses`, { userId, courseCodes: uniqueCombined });
       if (data?.success) {
-        // refresh saved list
         const res = await axios.get(`${api}/marks/current-courses/${userId}`);
         setSavedList(Array.isArray(res?.data?.courses) ? res.data.courses : []);
         setCurrentCourses([]);
@@ -64,7 +74,6 @@ export default function CurrentCourses() {
         setTimeout(() => setToast(null), 3000);
       }
     } catch (err) {
-      // minimal error handling
       console.error(err);
       setToast({ type: 'error', text: '❌ Failed to save courses' });
       setTimeout(() => setToast(null), 4000);
@@ -112,7 +121,7 @@ export default function CurrentCourses() {
                 <option key={s.code} value={s.code}>{s.title ? `${s.code} — ${s.title}` : s.code}</option>
               ))}
             </datalist>
-            <button className="button" type="button" onClick={addCourse} disabled={!courseInput || currentCourses.length >= 5}>Add</button>
+            <button className="button" type="button" onClick={addCourse} disabled={!courseInput || (currentCourses.length + savedList.length) >= 5}>Add</button>
             <span className="text-muted">Max 5 courses</span>
           </div>
 
