@@ -224,3 +224,139 @@ router.put('/profile/:userId', async (req, res) => {
 
 module.exports = router;
 
+// ==================== PARSE & SAVE ROUTE ====================
+// Upload a PDF, parse it via Python, purge previous records, and save to DB
+router.post('/parse-and-save', upload.single('file'), async (req, res) => {
+    const cleanup = () => {
+        if (req.file && req.file.path) {
+            fs.unlink(req.file.path, () => {});
+        }
+    };
+
+    try {
+        const userId = (req.body && req.body.userId) || null;
+        if (!userId) {
+            cleanup();
+            return res.status(400).json({ error: 'Missing userId' });
+        }
+        if (!req.file) {
+            cleanup();
+            return res.status(400).json({ error: 'No file uploaded' });
+        }
+
+        const projectRoot = path.resolve(__dirname, '..');
+        const pythonFromEnv = process.env.PYTHON_BIN;
+        const venvPython = path.join(projectRoot, '.venv', 'bin', 'python');
+        const pythonBin = pythonFromEnv || (fs.existsSync(venvPython) ? venvPython : 'python3');
+
+        const scriptPath = path.join(__dirname, 'scripts', 'parse_to_json.py');
+        if (!fs.existsSync(scriptPath)) {
+            cleanup();
+            return res.status(500).json({ error: 'Parser script not found' });
+        }
+
+        // Run parser
+        const child = spawn(pythonBin, [scriptPath, req.file.path], { cwd: projectRoot, env: { ...process.env } });
+        let stdout = '';
+        let stderr = '';
+        child.stdout.on('data', (d) => (stdout += d.toString()));
+        child.stderr.on('data', (d) => (stderr += d.toString()));
+        child.on('close', async (code) => {
+            cleanup();
+            if (code !== 0) {
+                return res.status(400).json({ error: 'Parser failed', details: stderr || stdout });
+            }
+            let parsed;
+            try {
+                parsed = JSON.parse(stdout);
+            } catch (e) {
+                return res.status(500).json({ error: 'Invalid JSON from parser', details: e?.message, raw: stdout });
+            }
+            if (parsed && parsed.error) {
+                return res.status(400).json(parsed);
+            }
+
+            // Normalize data
+            const profile = parsed.profile || {};
+            const semesters = Array.isArray(parsed.semesters) ? parsed.semesters : [];
+            const attempts = Array.isArray(parsed.course_attempts) ? parsed.course_attempts : [];
+            const normSemesters = semesters.map((s) => ({
+                user_id: userId,
+                name: String(s.name || '').trim(),
+                term_index: s.term_index ?? 0,
+                term_gpa: s.term_gpa ?? null,
+                term_credits: s.term_credits ?? null,
+                cumulative_cgpa: s.cumulative_cgpa ?? null,
+            }));
+
+            try {
+                // Upsert profile
+                const nowIso = new Date().toISOString();
+                const { error: upErr } = await supabase
+                    .from('user_profiles')
+                    .upsert({
+                        user_id: userId,
+                        full_name: profile.full_name || null,
+                        student_id: profile.student_id || null,
+                        last_parsed_at: nowIso,
+                    }, { onConflict: 'user_id' });
+                if (upErr) throw upErr;
+
+                // Purge existing data
+                const { error: delAttErr } = await supabase.from('course_attempts').delete().eq('user_id', userId);
+                if (delAttErr) throw delAttErr;
+                const { error: delSemErr } = await supabase.from('semesters').delete().eq('user_id', userId);
+                if (delSemErr) throw delSemErr;
+
+                // Insert semesters and get ids
+                let semIdMap = {};
+                if (normSemesters.length > 0) {
+                    const { data: semRows, error: insSemErr } = await supabase
+                        .from('semesters')
+                        .insert(normSemesters)
+                        .select('id,name,term_index');
+                    if (insSemErr) throw insSemErr;
+                    for (const row of (semRows || [])) {
+                        semIdMap[String(row.name).trim()] = row.id;
+                    }
+                }
+
+                // Build attempts batch
+                const attemptRecords = attempts.map((att) => ({
+                    user_id: userId,
+                    semester_id: semIdMap[String(att.semester || '').trim()] || null,
+                    course_code: att.course_code,
+                    grade: att.grade,
+                    gpa: att.gpa,
+                    credit: att.credit ? parseInt(att.credit, 10) : null,
+                    attempt_no: att.attempt_no || 1,
+                    is_retake: !!att.is_retake,
+                    is_latest: !!att.is_latest,
+                }));
+
+                // Chunked insert
+                const CHUNK = 500;
+                for (let i = 0; i < attemptRecords.length; i += CHUNK) {
+                    const chunk = attemptRecords.slice(i, i + CHUNK);
+                    if (chunk.length > 0) {
+                        const { error: insAttErr } = await supabase.from('course_attempts').insert(chunk);
+                        if (insAttErr) throw insAttErr;
+                    }
+                }
+
+                return res.json({
+                    success: true,
+                    profile: { full_name: profile.full_name, student_id: profile.student_id },
+                    semesters_inserted: normSemesters.length,
+                    attempts_inserted: attemptRecords.length,
+                });
+            } catch (dbErr) {
+                return res.status(400).json({ error: dbErr.message || String(dbErr) });
+            }
+        });
+    } catch (err) {
+        cleanup();
+        return res.status(500).json({ error: err.message });
+    }
+});
+

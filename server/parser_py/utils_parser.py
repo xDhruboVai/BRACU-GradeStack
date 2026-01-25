@@ -1,7 +1,7 @@
 import os
 import json
 import fitz
-from .shared_data import preq, cst_st, arts_st, ss_st, science_st, to_remove, grades, core, comp_cod, tarc
+from shared_data import preq, cst_st, arts_st, ss_st, science_st, to_remove, grades, core, comp_cod, tarc
 
 class course_node:
     def __init__(self, course, gpa=0.0, grade="F", credit=3):
