@@ -360,3 +360,150 @@ router.post('/parse-and-save', upload.single('file'), async (req, res) => {
     }
 });
 
+// ==================== COURSE SUGGESTIONS ====================
+// List available course codes not yet completed by the user
+router.get('/courses/suggestions/:userId', async (req, res) => {
+    try {
+        const { userId } = req.params;
+        if (!userId) return res.status(400).json({ error: 'Missing userId' });
+
+        const projectRoot = path.resolve(__dirname, '..');
+        const resourcesDir = path.join(projectRoot, 'docs', 'BRACU-Gradesheet-Analyzer-main', 'resources');
+        let allCodes = [];
+        let titlesByCode = {};
+        try {
+            const files = fs.readdirSync(resourcesDir).filter((f) => f.endsWith('.json'));
+            allCodes = files.map((f) => path.basename(f, '.json').toUpperCase());
+            for (const f of files) {
+                const code = path.basename(f, '.json').toUpperCase();
+                try {
+                    const raw = fs.readFileSync(path.join(resourcesDir, f), 'utf8');
+                    const j = JSON.parse(raw);
+                    titlesByCode[code] = j.title || j.course_title || j.course_name || j.name || null;
+                } catch (_) {}
+            }
+        } catch (_e) {
+            // If resources not found, return empty list gracefully
+            allCodes = [];
+        }
+
+        const { data: attempts, error } = await supabase
+            .from('course_attempts')
+            .select('course_code')
+            .eq('user_id', userId);
+        if (error) throw error;
+
+        const done = new Set((attempts || []).map((a) => String(a.course_code || '').toUpperCase()));
+        const suggestions = allCodes.filter((c) => c && !done.has(c)).sort();
+
+        res.json({ suggestions: suggestions, meta: suggestions.map((c) => ({ code: c, title: titlesByCode[c] || null })) });
+    } catch (error) {
+        res.status(400).json({ error: error.message });
+    }
+});
+
+// ==================== SAVE CURRENT SEMESTER COURSES ====================
+// Save up to 5 selected course codes for the user's current term
+router.post('/marks/current-courses', async (req, res) => {
+    try {
+        const { userId, courseCodes } = req.body || {};
+        if (!userId) return res.status(400).json({ error: 'Missing userId' });
+        const codes = Array.isArray(courseCodes) ? courseCodes.map((c) => String(c || '').toUpperCase().trim()).filter(Boolean) : [];
+        const uniqueCodes = Array.from(new Set(codes));
+        if (uniqueCodes.length === 0) return res.status(400).json({ error: 'No courses provided' });
+        if (uniqueCodes.length > 5) return res.status(400).json({ error: 'Maximum 5 courses allowed' });
+
+        // Optional: validate codes exist in resources
+        const projectRoot = path.resolve(__dirname, '..');
+        const resourcesDir = path.join(projectRoot, 'docs', 'BRACU-Gradesheet-Analyzer-main', 'resources');
+        let validCodes = new Set();
+        try {
+            const files = fs.readdirSync(resourcesDir).filter((f) => f.endsWith('.json'));
+            validCodes = new Set(files.map((f) => path.basename(f, '.json').toUpperCase()));
+        } catch (_e) {
+            validCodes = new Set();
+        }
+        const toSave = uniqueCodes.filter((c) => validCodes.size === 0 || validCodes.has(c));
+        if (toSave.length === 0) return res.status(400).json({ error: 'Provided course codes are not recognized' });
+
+        // Strategy: overwrite existing "Current" term entries for this user
+        const { error: delErr } = await supabase
+            .from('marks_courses')
+            .delete()
+            .eq('user_id', userId)
+            .eq('term_name', 'Current');
+        if (delErr) throw delErr;
+        // Prefill title/credit from resources when available
+        const rows = toSave.map((course_code) => {
+            let title = null;
+            let credit = null;
+            try {
+                const fp = path.join(resourcesDir, `${course_code}.json`);
+                if (fs.existsSync(fp)) {
+                    const raw = fs.readFileSync(fp, 'utf8');
+                    const j = JSON.parse(raw);
+                    title = j.title || j.course_title || j.course_name || j.name || null;
+                    let cr = j.credit || j.credits || j.course_credit || null;
+                    if (typeof cr === 'string') {
+                        const m = cr.match(/\d+/);
+                        cr = m ? parseInt(m[0], 10) : null;
+                    } else if (typeof cr === 'number') {
+                        cr = Math.round(cr);
+                    }
+                    if (typeof cr === 'number' && cr >= 1 && cr <= 6) {
+                        credit = cr;
+                    }
+                }
+            } catch (_e) {
+                // ignore parse errors, fallback to nulls
+            }
+            return { user_id: userId, course_code, term_name: 'Current', title, credit };
+        });
+        const { data: inserted, error: insErr } = await supabase
+            .from('marks_courses')
+            .insert(rows)
+            .select('id, course_code, title, credit');
+        if (insErr) throw insErr;
+
+        res.json({ success: true, inserted_count: inserted?.length || 0, courses: inserted || [] });
+    } catch (error) {
+        res.status(400).json({ error: error.message });
+    }
+});
+
+// ==================== READ CURRENT SEMESTER COURSES ====================
+router.get('/marks/current-courses/:userId', async (req, res) => {
+    try {
+        const { userId } = req.params;
+        if (!userId) return res.status(400).json({ error: 'Missing userId' });
+        const { data, error } = await supabase
+            .from('marks_courses')
+            .select('id, course_code, title, credit')
+            .eq('user_id', userId)
+            .eq('term_name', 'Current')
+            .order('id', { ascending: true });
+        if (error) throw error;
+        res.json({ courses: data || [] });
+    } catch (error) {
+        res.status(400).json({ error: error.message });
+    }
+});
+
+// ==================== DELETE CURRENT SEMESTER COURSE ====================
+router.delete('/marks/current-courses/:userId/:id', async (req, res) => {
+    try {
+        const { userId, id } = req.params;
+        if (!userId || !id) return res.status(400).json({ error: 'Missing userId or id' });
+        const { error } = await supabase
+            .from('marks_courses')
+            .delete()
+            .eq('user_id', userId)
+            .eq('id', id)
+            .eq('term_name', 'Current');
+        if (error) throw error;
+        res.json({ success: true });
+    } catch (error) {
+        res.status(400).json({ error: error.message });
+    }
+});
+

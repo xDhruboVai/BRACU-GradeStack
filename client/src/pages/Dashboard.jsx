@@ -14,6 +14,10 @@ export default function Dashboard() {
   const [saveResult, setSaveResult] = useState(null);
   const [isUploading, setIsUploading] = useState(false);
   const [blurInfo, setBlurInfo] = useState(false);
+  const [suggestions, setSuggestions] = useState([]);
+  const [courseInput, setCourseInput] = useState('');
+  const [currentCourses, setCurrentCourses] = useState([]);
+  const [savingCourses, setSavingCourses] = useState(false);
   const api = process.env.REACT_APP_API_URL;
 
   useEffect(() => {
@@ -33,6 +37,10 @@ export default function Dashboard() {
             }
           })
           .catch(err => console.error('Failed to load profile', err));
+        // Fetch course suggestions
+        axios.get(`${api}/courses/suggestions/${u.id}`)
+          .then(({ data }) => setSuggestions(Array.isArray(data?.suggestions) ? data.suggestions : []))
+          .catch(err => console.error('Failed to load suggestions', err));
       }
     });
   }, [navigate, api]);
@@ -73,6 +81,12 @@ export default function Dashboard() {
       if (data.profile) {
         setProfile(prev => ({ ...prev, ...data.profile }));
       }
+      // Refresh suggestions in case analyzer wants updated codes later
+      if (userId) {
+        axios.get(`${api}/courses/suggestions/${userId}`)
+          .then(({ data }) => setSuggestions(Array.isArray(data?.suggestions) ? data.suggestions : []))
+          .catch(() => {});
+      }
     } catch (err) {
       console.error('Save failed', err?.response?.data || err?.message);
       setSaveResult({ error: 'Failed to save to DB', details: err?.response?.data || err?.message });
@@ -81,9 +95,41 @@ export default function Dashboard() {
     }
   };
 
+  const addCourse = () => {
+    const code = String(courseInput || '').toUpperCase().trim();
+    if (!code) return;
+    if (currentCourses.includes(code)) return;
+    if (currentCourses.length >= 5) return;
+    // Optional: only allow from suggestions list if present
+    if (suggestions.length && !suggestions.includes(code)) return;
+    setCurrentCourses((prev) => [...prev, code]);
+    setCourseInput('');
+  };
+
+  const removeCourse = (code) => {
+    setCurrentCourses((prev) => prev.filter((c) => c !== code));
+  };
+
+  const saveCurrentCourses = async () => {
+    if (!userId || currentCourses.length === 0) return;
+    try {
+      setSavingCourses(true);
+      const { data } = await axios.post(`${api}/marks/current-courses`, {
+        userId,
+        courseCodes: currentCourses,
+      });
+      // Simple success cue
+      setSaveResult({ success: true, inserted_count: data?.inserted_count || currentCourses.length });
+    } catch (err) {
+      setSaveResult({ error: 'Failed to save current courses', details: err?.response?.data || err?.message });
+    } finally {
+      setSavingCourses(false);
+    }
+  };
+
   return (
     <div className="auth-wrapper">
-      <div className="auth-card" style={{ paddingTop: '1rem', width: '100%', maxWidth: '600px' }}>
+      <div className="auth-card" style={{ paddingTop: '1rem', width: '100%', maxWidth: '1000px' }}>
         
         {/* Header: Profile Card on Left (Top), Sign Out on Right */}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.5rem', borderBottom: '1px solid #333', paddingBottom: '1rem' }}>
@@ -152,9 +198,12 @@ export default function Dashboard() {
            <button className="button" style={{ padding: '0.4rem 0.8rem', fontSize: '0.85rem' }} onClick={handleSignOut}>Sign Out</button>
         </div>
 
-        <div style={{ display: 'grid', gap: '1.25rem' }}>
-          {/* Section 1: Upload Gradesheet */}
-          <section className="panel" style={{ textAlign: 'left' }}>
+        {/* Main content grid: Left tabs (Upload, Analyzer, Marks Book) and Right tab (Current Courses) */}
+        <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem', alignItems: 'start' }}>
+          {/* Left Column */}
+          <div style={{ display: 'grid', gap: '1.25rem' }}>
+            {/* Section: Upload Gradesheet */}
+            <section className="panel" style={{ textAlign: 'left' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
               <h3 className="panel-title">Upload Gradesheet</h3>
               {profile.last_parsed_at && (
@@ -182,27 +231,75 @@ export default function Dashboard() {
                 <pre style={{ whiteSpace: 'pre-wrap' }}>{JSON.stringify(saveResult.error, null, 2)}</pre>
               </div>
             )}
-          </section>
+            </section>
 
-          {/* Section 2: Analyzer */}
-          <section className="panel" style={{ textAlign: 'left' }}>
+            {/* Section: Analyzer */}
+            <section className="panel" style={{ textAlign: 'left' }}>
             <h3 className="panel-title">Gradesheet Analyzer</h3>
             <p className="text-muted">View parsed results, retakes, and KPIs.</p>
             <div style={{ marginTop: '0.75rem' }}>
               <Link className="button glow" to="/analyzer">Open Analyzer</Link>
             </div>
-          </section>
+            </section>
 
-          {/* Section 3: Marks Book */}
-          <section className="panel" style={{ textAlign: 'left' }}>
+            {/* Section: Marks Book */}
+            <section className="panel" style={{ textAlign: 'left' }}>
             <h3 className="panel-title">Marks Book</h3>
             <p className="text-muted">Plan ongoing assessments, targets, and track progress.</p>
             <div style={{ marginTop: '0.75rem' }}>
               <Link className="button glow" to="/marks-book">Open Marks Book</Link>
             </div>
-          </section>
+            </section>
+          </div>
+
+          {/* Right Column */}
+          <div style={{ display: 'grid', gap: '1.25rem' }}>
+            {/* Section: Current Semester Courses Tab */}
+            <section className="panel" style={{ textAlign: 'left' }}>
+            <h3 className="panel-title">Courses in Current Semester</h3>
+            <p className="text-muted">These will be added to Marks Book for your current term and used to simulate grades in the analyzer.</p>
+            <div style={{ marginTop: '0.75rem' }}>
+              <Link className="button glow" to="/current-courses">PRESS TO ADD THE COURSES</Link>
+            </div>
+            {/* Preview saved courses (shown only when present) */}
+            <div style={{ marginTop: '0.75rem' }}>
+              {profile && userId && (
+                <PreviewCurrentCourses userId={userId} api={api} />
+              )}
+            </div>
+            </section>
+          </div>
         </div>
       </div>
     </div>
+  );
+}
+
+function PreviewCurrentCourses({ userId, api }) {
+  const [list, setList] = React.useState([]);
+  React.useEffect(() => {
+    axios.get(`${api}/marks/current-courses/${userId}`)
+      .then(({ data }) => setList(Array.isArray(data?.courses) ? data.courses : []))
+      .catch(() => {});
+  }, [userId, api]);
+  if (!list.length) return null;
+  const remove = async (id, code) => {
+    try {
+      await axios.delete(`${api}/marks/current-courses/${userId}/${id}`);
+      const { data } = await axios.get(`${api}/marks/current-courses/${userId}`);
+      setList(Array.isArray(data?.courses) ? data.courses : []);
+    } catch (e) {
+      // silently fail; users can retry or open the full tab
+    }
+  };
+  return (
+    <>
+      {list.map((c) => (
+        <span key={c.id} style={{ background: '#222', border: '1px solid #444', borderRadius: '16px', padding: '4px 10px', display: 'inline-flex', alignItems: 'center', gap: '8px' }}>
+          {c.course_code}
+          <button type="button" title="Remove" onClick={() => remove(c.id, c.course_code)} style={{ background: 'transparent', border: 'none', color: '#bbb', cursor: 'pointer', fontSize: '1rem', lineHeight: 1 }}>×</button>
+        </span>
+      ))}
+    </>
   );
 }

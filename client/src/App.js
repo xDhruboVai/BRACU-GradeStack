@@ -5,6 +5,7 @@ import Signup from './pages/Signup';
 import Dashboard from './pages/Dashboard';
 import Analyzer from './pages/Analyzer';
 import MarksBook from './pages/MarksBook';
+import CurrentCourses from './pages/CurrentCourses';
 import ForgotPassword from './pages/ForgotPassword';
 import ResetPassword from './pages/ResetPassword';
 import './App.css';
@@ -20,6 +21,7 @@ function App() {
           <Route path="/forgot" element={<ForgotPassword />} />
           <Route path="/reset" element={<ResetPassword />} />
           <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/current-courses" element={<CurrentCourses />} />
           <Route path="/analyzer" element={<Analyzer />} />
           <Route path="/marks-book" element={<MarksBook />} />
         </Routes>

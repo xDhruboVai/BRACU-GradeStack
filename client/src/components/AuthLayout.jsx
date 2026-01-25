@@ -1,8 +1,10 @@
 import React, { useEffect, useState } from 'react';
+import { useNavigate } from 'react-router-dom';
 import LogoMark from './LogoMark';
 import '../styles/auth.css';
+import { supabase } from '../supabaseClient';
 
-export default function AuthLayout({ title, subtitle, children }) {
+export default function AuthLayout({ title, subtitle, children, noHero = false }) {
   const bgUrl = process.env.REACT_APP_AUTH_BG_URL;
   const rotateMs = Number(process.env.REACT_APP_HERO_ROTATE_MS || 6000);
   const fadeMs = Number(process.env.REACT_APP_HERO_FADE_MS || 900);
@@ -40,13 +42,24 @@ export default function AuthLayout({ title, subtitle, children }) {
 
   const current = messages[msgIndex];
   const previous = messages[prevIndex];
+  const navigate = useNavigate();
+
+  const onBrandClick = async () => {
+    try {
+      const { data } = await supabase.auth.getSession();
+      const session = data?.session;
+      navigate(session ? '/dashboard' : '/login');
+    } catch (err) {
+      navigate('/login');
+    }
+  };
   return (
     <div className="auth-wrapper">
       {bgUrl ? <div className="bg-photo" style={{ backgroundImage: `url(${bgUrl})` }} /> : null}
       <div className="bg-aurora" />
       <div className="grid-overlay" />
 
-      <div className="brand">
+      <div className="brand" onClick={onBrandClick} role="button" aria-label="Go to home" style={{ cursor: 'pointer' }}>
         <LogoMark size={40} />
         <div className="brand-text">
           <span className="brand-name">GradeStack</span>
@@ -55,22 +68,24 @@ export default function AuthLayout({ title, subtitle, children }) {
       </div>
 
       <div className="auth-container">
-        <section className="hero" aria-live="polite">
-          <div className="hero-stack" style={{ ['--heroFadeMs']: `${fadeMs}ms` }}>
-            {showPrev && (
-              <div className="hero-layer hero-out">
-                <h2 className="hero-title">{previous.title}</h2>
-                <p className="hero-copy">{previous.copy}</p>
+        {!noHero && (
+          <section className="hero" aria-live="polite">
+            <div className="hero-stack" style={{ ['--heroFadeMs']: `${fadeMs}ms` }}>
+              {showPrev && (
+                <div className="hero-layer hero-out">
+                  <h2 className="hero-title">{previous.title}</h2>
+                  <p className="hero-copy">{previous.copy}</p>
+                </div>
+              )}
+              <div key={msgIndex} className="hero-layer hero-in">
+                <h2 className="hero-title">{current.title}</h2>
+                <p className="hero-copy">{current.copy}</p>
               </div>
-            )}
-            <div key={msgIndex} className="hero-layer hero-in">
-              <h2 className="hero-title">{current.title}</h2>
-              <p className="hero-copy">{current.copy}</p>
             </div>
-          </div>
-        </section>
+          </section>
+        )}
 
-        <div className="auth-card glass">
+        <div className="auth-card glass" style={{ width: noHero ? '95%' : undefined }}>
           <div className="card-header">
             <LogoMark size={44} />
             <div>
