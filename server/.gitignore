@@ -36,3 +36,11 @@ Thumbs.db
 # Uploaded files (temporary storage)
 uploads/
 temp/
+
+# Python artifacts (parser)
+*.pyc
+__pycache__/
+parser_py/__pycache__/
+
+# Virtual environment (if created under server)
+.venv/

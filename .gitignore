@@ -30,3 +30,17 @@ tmp/
 uploads/
 
 /docs
+
+# Virtual environments
+**/.venv/
+venv/
+
+# Local PDFs and artifacts
+*.pdf
+
+# Python caches
+__pycache__/
+**/__pycache__/
+*.pyc
+
+__pycache__

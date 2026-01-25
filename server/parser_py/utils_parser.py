@@ -1,8 +1,7 @@
 import os
 import json
 import fitz
-from streamlit.runtime.scriptrunner import get_script_run_ctx
-from shared_data import preq, cst_st, arts_st, ss_st, science_st, to_remove, grades, core, comp_cod, tarc
+from .shared_data import preq, cst_st, arts_st, ss_st, science_st, to_remove, grades, core, comp_cod, tarc
 
 class course_node:
     def __init__(self, course, gpa=0.0, grade="F", credit=3):
@@ -27,6 +26,7 @@ class semester_node:
         for course in self.courses:
             print(course.course, end=" ")
         print(self.credit, self.gpa, self.cgpa)
+
 
 def extract(path):
     courses_done = {}
@@ -99,6 +99,7 @@ def extract(path):
     semesters_done["NULL"] = semester_node("NULL")
     return name, id, courses_done, semesters_done
 
+
 def add_course(course, gpa_val, courses_done, semesters_done):
     semester = "VIRTUAL SEMESTER"
     credit = 4 if course == "CSE400" else 3
@@ -124,6 +125,7 @@ def add_course(course, gpa_val, courses_done, semesters_done):
     total_credits_all = sum(n.credit for n in courses_done.values())
     semesters_done[semester].cgpa = round(total_points_all / total_credits_all, 2) if total_credits_all else 0.0
 
+
 def remove_course(course_code, courses_done, semesters_done):
     semester = "VIRTUAL SEMESTER"
     if course_code not in courses_done or semester not in semesters_done:
@@ -134,7 +136,6 @@ def remove_course(course_code, courses_done, semesters_done):
         if course.course == course_code:
             removed_course = course_list.pop(i)
             semesters_done[semester].credit -= removed_course.credit
-
 
             total_points = sum(c.gpa * c.credit for c in course_list)
             total_credits = sum(c.credit for c in course_list)
@@ -149,6 +150,7 @@ def remove_course(course_code, courses_done, semesters_done):
             if not semesters_done[semester].courses:
                 del semesters_done[semester]
             return
+
 
 def cgpa_projection(courses_done, target_cgpa=None, total_required_credits=136):
     earned_credits = sum(node.credit for node in courses_done.values())
@@ -189,6 +191,7 @@ def cgpa_projection(courses_done, target_cgpa=None, total_required_credits=136):
                 f"{rounded_required_gpa} GPA over the remaining {remaining_credits} credits."
             )
     return result
+
 
 def cgpa_planner(courses_done, target_cgpa=None, semesters=0, courses_per_sem=0, total_required_credits=136):
     total_credits_done = sum(course.credit for course in courses_done.values())
@@ -237,9 +240,10 @@ def cgpa_planner(courses_done, target_cgpa=None, semesters=0, courses_per_sem=0,
             )
     return result
 
+
 def cod_planner(courses_done):
-    from shared_data import cst_st, ss_st, science_st
-    from utils_parser import get_session_cod_sets
+    from .shared_data import cst_st, ss_st, science_st
+    from .utils_parser import get_session_cod_sets
 
     comp_cod_session, arts_st_session = get_session_cod_sets(courses_done)
 
@@ -325,6 +329,7 @@ def cod_planner(courses_done):
     result["plan"] = plan
     return result
 
+
 def simulate_retake(courses_done, regrades):
     total_points = 0
     total_credits = 0
@@ -341,6 +346,7 @@ def simulate_retake(courses_done, regrades):
         "new_cgpa": new_cgpa,
         "message": f"After retaking specified courses, your projected CGPA would be {new_cgpa}."
     }
+
 
 def get_unlocked_courses(courses_done):
     completed = set(courses_done.keys())
@@ -362,6 +368,7 @@ def get_unlocked_courses(courses_done):
 
     return unlocked_now, reverse_unlock_map
 
+
 def get_all_course_codes():
     all_codes = set(preq.keys())
     for lst in preq.values():
@@ -379,6 +386,7 @@ def get_all_course_codes():
 
     return sorted(all_codes)
 
+
 def load_course_resources(course_code, resource_dir="resources"):
     filename = course_code.replace("/", "_") + ".json"
     file_path = os.path.join(resource_dir, filename)
@@ -386,6 +394,7 @@ def load_course_resources(course_code, resource_dir="resources"):
         with open(file_path, "r") as f:
             return json.load(f)
     return None
+
 
 def get_session_cod_sets(courses_done):
     comp_cod_session = set(comp_cod)

@@ -1,12 +1,90 @@
 const express = require('express');
 const router = express.Router();
 const { supabase } = require('./supabase');
+const multer = require('multer');
+const fs = require('fs');
+const path = require('path');
+const { spawn } = require('child_process');
+
+// =============== Upload setup for PDF parsing ===============
+const uploadDir = path.join(__dirname, 'uploads');
+if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
+const upload = multer({
+    storage: multer.diskStorage({
+        destination: (_req, _file, cb) => cb(null, uploadDir),
+        filename: (_req, file, cb) => {
+            const ts = Date.now();
+            const safe = file.originalname.replace(/[^a-zA-Z0-9_.-]/g, '_');
+            cb(null, `${ts}-${safe}`);
+        },
+    }),
+    fileFilter: (_req, file, cb) => {
+        if (file.mimetype === 'application/pdf') return cb(null, true);
+        cb(new Error('Only PDF files are allowed'));
+    },
+    limits: { fileSize: 25 * 1024 * 1024 }, // 25 MB
+});
 
 // ==================== AUTH ROUTES ====================
 
 // Test route
 router.get('/test', (req, res) => {
     res.json({ message: 'API is working!' });
+});
+
+// Parse gradesheet: accepts multipart/form-data with field 'file'
+router.post('/parse', upload.single('file'), async (req, res) => {
+    const cleanup = () => {
+        if (req.file && req.file.path) {
+            fs.unlink(req.file.path, () => {});
+        }
+    };
+
+    try {
+        if (!req.file) {
+            return res.status(400).json({ error: 'No file uploaded' });
+        }
+
+        const projectRoot = path.resolve(__dirname, '..');
+        const pythonFromEnv = process.env.PYTHON_BIN;
+        const venvPython = path.join(projectRoot, '.venv', 'bin', 'python');
+        const pythonBin = pythonFromEnv || (fs.existsSync(venvPython) ? venvPython : 'python3');
+
+        const scriptPath = path.join(__dirname, 'scripts', 'parse_to_json.py');
+        if (!fs.existsSync(scriptPath)) {
+            cleanup();
+            return res.status(500).json({ error: 'Parser script not found' });
+        }
+
+        const child = spawn(pythonBin, [scriptPath, req.file.path], {
+            cwd: projectRoot,
+            env: { ...process.env },
+        });
+
+        let stdout = '';
+        let stderr = '';
+        child.stdout.on('data', (d) => (stdout += d.toString()));
+        child.stderr.on('data', (d) => (stderr += d.toString()));
+
+        child.on('close', (code) => {
+            cleanup();
+            if (code !== 0) {
+                return res.status(400).json({ error: 'Parser failed', details: stderr || stdout });
+            }
+            try {
+                const json = JSON.parse(stdout);
+                if (json && json.error) {
+                    return res.status(400).json(json);
+                }
+                return res.json(json);
+            } catch (e) {
+                return res.status(500).json({ error: 'Invalid JSON from parser', details: e?.message, raw: stdout });
+            }
+        });
+    } catch (err) {
+        cleanup();
+        return res.status(500).json({ error: err.message });
+    }
 });
 
 // Signup route (no 2FA/email confirmation; create via admin and upsert profile)
