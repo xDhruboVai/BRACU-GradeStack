@@ -242,6 +242,8 @@ export default function Dashboard() {
             </div>
             </section>
 
+            {/* Visual Analytics lives inside Analyzer as a tab now */}
+
             {/* Section: Marks Book */}
             <section className="panel" style={{ textAlign: 'left' }}>
             <h3 className="panel-title">Marks Book</h3>

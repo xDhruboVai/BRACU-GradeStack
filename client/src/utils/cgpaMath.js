@@ -9,8 +9,8 @@ export function computeCGPA(latestAttempts) {
 export function totalCreditsRequired(major) {
   const m = String(major || '').toUpperCase();
   const map = {
-    CSE: 130,
-    CS: 130,
+    CSE: 136,
+    CS: 124,
     EEE: 140,
     BBA: 120,
   };
