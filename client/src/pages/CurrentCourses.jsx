@@ -8,7 +8,7 @@ export default function CurrentCourses() {
   const [userId, setUserId] = useState('');
   const [suggestions, setSuggestions] = useState([]);
   const [courseInput, setCourseInput] = useState('');
-  const [currentCourses, setCurrentCourses] = useState([]);
+  const [currentCourses, setCurrentCourses] = useState([]); // no longer used for saving; kept for minimal change
   const [saving, setSaving] = useState(false);
   const [savedList, setSavedList] = useState([]);
   const [toast, setToast] = useState(null); // { type: 'success'|'error', text: string }
@@ -35,52 +35,44 @@ export default function CurrentCourses() {
     });
   }, [navigate, api]);
 
-  const addCourse = () => {
+  const addCourse = async () => {
     const code = String(courseInput || '').toUpperCase().trim();
     if (!code) return;
-    if (currentCourses.includes(code)) return;
-    if (currentCourses.length >= 5) return;
     const allowedCodes = suggestions.map((s) => s.code);
     if (allowedCodes.length && !allowedCodes.includes(code)) return;
-    setCurrentCourses((prev) => [...prev, code]);
-    setCourseInput('');
-  };
-
-  const removeCourse = (code) => {
-    setCurrentCourses((prev) => prev.filter((c) => c !== code));
-  };
-
-  const save = async () => {
-    if (!userId) return;
-    // Build union of existing saved + pending additions, preserving new first then existing order
+    // prevent duplicates and enforce max 5 without separate save
     const existing = savedList.map((c) => String(c.course_code || '').toUpperCase());
-    const additions = currentCourses.map((c) => String(c || '').toUpperCase());
-    const combined = [...additions, ...existing.filter((c) => !additions.includes(c))];
-    const uniqueCombined = Array.from(new Set(combined));
-    if (uniqueCombined.length === 0) return;
-    if (uniqueCombined.length > 5) {
+    if (existing.includes(code)) { setCourseInput(''); return; }
+    const combined = Array.from(new Set([code, ...existing]));
+    if (combined.length > 5) {
       setToast({ type: 'error', text: '❌ Maximum 5 courses total' });
       setTimeout(() => setToast(null), 3500);
       return;
     }
     try {
       setSaving(true);
-      const { data } = await axios.post(`${api}/marks/current-courses`, { userId, courseCodes: uniqueCombined });
+      const { data } = await axios.post(`${api}/marks/current-courses`, { userId, courseCodes: combined });
       if (data?.success) {
         const res = await axios.get(`${api}/marks/current-courses/${userId}`);
         setSavedList(Array.isArray(res?.data?.courses) ? res.data.courses : []);
-        setCurrentCourses([]);
-        setToast({ type: 'success', text: '✅ Current courses saved' });
-        setTimeout(() => setToast(null), 3000);
+        setToast({ type: 'success', text: `✅ Added ${code}` });
+        setTimeout(() => setToast(null), 2500);
       }
     } catch (err) {
       console.error(err);
-      setToast({ type: 'error', text: '❌ Failed to save courses' });
+      setToast({ type: 'error', text: '❌ Failed to add course' });
       setTimeout(() => setToast(null), 4000);
     } finally {
       setSaving(false);
+      setCourseInput('');
     }
   };
+
+  const removeCourse = (code) => {
+    setCurrentCourses((prev) => prev.filter((c) => c !== code));
+  };
+
+  // save button removed; addCourse immediately persists
 
   return (
     <AuthLayout title="Current Semester Courses" subtitle="These will be added to Marks Book and used by the Analyzer." noHero>
@@ -121,26 +113,10 @@ export default function CurrentCourses() {
                 <option key={s.code} value={s.code}>{s.title ? `${s.code} — ${s.title}` : s.code}</option>
               ))}
             </datalist>
-            <button className="button" type="button" onClick={addCourse} disabled={!courseInput || (currentCourses.length + savedList.length) >= 5}>Add</button>
+            <button className="button" type="button" onClick={addCourse} disabled={!courseInput || saving || savedList.length >= 5}>Add</button>
             <span className="text-muted">Max 5 courses</span>
           </div>
 
-          {currentCourses.length > 0 && (
-            <div style={{ display: 'flex', gap: '0.5rem', flexWrap: 'wrap', marginTop: '0.75rem' }}>
-              {currentCourses.map((code) => (
-                <span key={code} style={{ background: '#222', border: '1px solid #444', borderRadius: '16px', padding: '4px 10px' }}>
-                  {code}
-                  <button type="button" onClick={() => removeCourse(code)} style={{ marginLeft: 8, background: 'transparent', color: '#bbb', border: 'none', cursor: 'pointer' }}>×</button>
-                </span>
-              ))}
-            </div>
-          )}
-
-          <div style={{ marginTop: '0.75rem' }}>
-            <button className="button glow" type="button" disabled={saving || currentCourses.length === 0} onClick={save}>
-              {saving ? 'Saving…' : 'Save Current Courses'}
-            </button>
-          </div>
         </div>
 
         {savedList.length > 0 && (
@@ -153,7 +129,7 @@ export default function CurrentCourses() {
                     <strong>{c.course_code}</strong>
                     {c.title ? <span style={{ fontSize: '0.85rem', color: '#888' }}>{c.title}</span> : null}
                   </div>
-                  {typeof c.credit === 'number' ? <span style={{ color: '#aaa' }}>• {c.credit} cr</span> : null}
+                  {/* credit removed per product decision */}
                   <button
                     type="button"
                     title="Remove"

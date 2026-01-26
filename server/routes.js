@@ -447,7 +447,6 @@ router.post('/marks/current-courses', async (req, res) => {
         // Prefill title/credit from resources when available
         const rows = toSave.map((course_code) => {
             let title = null;
-            let credit = null;
             try {
                 if (resourcesDir) {
                     const fp = path.join(resourcesDir, `${course_code}.json`);
@@ -455,27 +454,17 @@ router.post('/marks/current-courses', async (req, res) => {
                         const raw = fs.readFileSync(fp, 'utf8');
                         const j = JSON.parse(raw);
                         title = j.title || j.course_title || j.course_name || j.name || null;
-                        let cr = j.credit || j.credits || j.course_credit || null;
-                        if (typeof cr === 'string') {
-                            const m = cr.match(/\d+/);
-                            cr = m ? parseInt(m[0], 10) : null;
-                        } else if (typeof cr === 'number') {
-                            cr = Math.round(cr);
-                        }
-                        if (typeof cr === 'number' && cr >= 1 && cr <= 6) {
-                            credit = cr;
-                        }
                     }
                 }
             } catch (_e) {
                 // ignore parse errors, fallback to nulls
             }
-            return { user_id: userId, course_code, term_name: 'Current', title, credit };
+            return { user_id: userId, course_code, term_name: 'Current', title };
         });
         const { data: inserted, error: insErr } = await supabase
             .from('marks_courses')
             .insert(rows)
-            .select('id, course_code, title, credit');
+            .select('id, course_code, title');
         if (insErr) throw insErr;
 
         res.json({ success: true, inserted_count: inserted?.length || 0, courses: inserted || [] });
@@ -491,7 +480,7 @@ router.get('/marks/current-courses/:userId', async (req, res) => {
         if (!userId) return res.status(400).json({ error: 'Missing userId' });
         const { data, error } = await supabase
             .from('marks_courses')
-            .select('id, course_code, title, credit')
+            .select('id, course_code, title')
             .eq('user_id', userId)
             .eq('term_name', 'Current')
             .order('id', { ascending: true });
