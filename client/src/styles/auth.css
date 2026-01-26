@@ -55,7 +55,7 @@
 
 .brand {
   width: 100%;
-  max-width: 1200px;
+  max-width: none;
   display: flex;
   align-items: center;
   gap: 0.9rem;
@@ -73,10 +73,23 @@
   z-index: 1;
 }
 
+/* Full-width mode when hero is disabled (Analyzer etc.) */
+.auth-container.no-hero {
+  max-width: none;
+  grid-template-columns: 1fr;
+}
+
 @media (min-width: 1024px) {
   .auth-container {
     grid-template-columns: 1.4fr 1fr;
     gap: 2.5rem;
+  }
+}
+
+@media (min-width: 1024px) {
+  .auth-container.no-hero {
+    grid-template-columns: 1fr;
+    gap: 2rem;
   }
 }
 
@@ -284,7 +297,7 @@
 
 .auth-footer {
   width: 100%;
-  max-width: 980px;
+  max-width: none;
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -305,4 +318,19 @@
 .panel-title {
   margin: 0 0 0.5rem 0;
   font-size: 1.25rem;
+}
+
+/* Sticky top navigation tabs for Analyzer */
+.sticky-tabs {
+  position: sticky;
+  top: 0;
+  z-index: 20;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  padding: 0.5rem 0.25rem;
+  margin: -0.5rem 0 0.75rem 0;
+  background: rgba(10, 10, 14, 0.6);
+  backdrop-filter: blur(8px);
+  border-bottom: 1px solid rgba(255,255,255,0.06);
 }

@@ -507,3 +507,80 @@ router.delete('/marks/current-courses/:userId/:id', async (req, res) => {
     }
 });
 
+
+// ==================== ANALYZER READ ENDPOINTS ====================
+// Fetch semesters for a user
+router.get('/semesters/:userId', async (req, res) => {
+    try {
+        const { userId } = req.params;
+        if (!userId) return res.status(400).json({ error: 'Missing userId' });
+        const { data, error } = await supabase
+            .from('semesters')
+            .select('id, name, term_index, term_gpa, term_credits, cumulative_cgpa')
+            .eq('user_id', userId)
+            .order('term_index', { ascending: true });
+        if (error) throw error;
+        res.json({ semesters: data || [] });
+    } catch (error) {
+        res.status(400).json({ error: error.message });
+    }
+});
+
+// Fetch course attempts for a user
+router.get('/course-attempts/:userId', async (req, res) => {
+    try {
+        const { userId } = req.params;
+        if (!userId) return res.status(400).json({ error: 'Missing userId' });
+        const { data, error } = await supabase
+            .from('course_attempts')
+            .select('id, semester_id, course_code, grade, gpa, credit, attempt_no, is_retake, is_latest')
+            .eq('user_id', userId)
+            .order('semester_id', { ascending: true });
+        if (error) throw error;
+        res.json({ attempts: data || [] });
+    } catch (error) {
+        res.status(400).json({ error: error.message });
+    }
+});
+
+// Analyzer summary: profile and KPIs
+router.get('/analyzer/summary/:userId', async (req, res) => {
+    try {
+        const { userId } = req.params;
+        if (!userId) return res.status(400).json({ error: 'Missing userId' });
+
+        const { data: profile, error: profErr } = await supabase
+            .from('user_profiles')
+            .select('user_id, full_name, student_id, major, last_parsed_at')
+            .eq('user_id', userId)
+            .maybeSingle();
+        if (profErr) throw profErr;
+
+        const { data: semesters, error: semErr } = await supabase
+            .from('semesters')
+            .select('id, cumulative_cgpa')
+            .eq('user_id', userId);
+        if (semErr) throw semErr;
+
+        const { data: attempts, error: attErr } = await supabase
+            .from('course_attempts')
+            .select('gpa, credit, is_retake, is_latest')
+            .eq('user_id', userId);
+        if (attErr) throw attErr;
+
+        const latest = (attempts || []).filter(a => a.is_latest);
+        const credits = latest.reduce((s,a)=> s + (a.credit || 0), 0);
+        const points = latest.reduce((s,a)=> s + ((a.gpa || 0) * (a.credit || 0)), 0);
+        const cgpa = credits > 0 ? Number((points / credits).toFixed(2)) : null;
+        const retakesCount = (attempts || []).filter(a => a.is_retake).length;
+        const termsCount = (semesters || []).length;
+
+        res.json({
+            profile: profile || null,
+            kpis: { cgpa, creditsEarned: credits, retakesCount, termsCount }
+        });
+    } catch (error) {
+        res.status(400).json({ error: error.message });
+    }
+});
+

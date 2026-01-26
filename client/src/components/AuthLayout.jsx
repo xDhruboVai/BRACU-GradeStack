@@ -67,7 +67,7 @@ export default function AuthLayout({ title, subtitle, children, noHero = false }
         </div>
       </div>
 
-      <div className="auth-container">
+      <div className={noHero ? "auth-container no-hero" : "auth-container"}>
         {!noHero && (
           <section className="hero" aria-live="polite">
             <div className="hero-stack" style={{ ['--heroFadeMs']: `${fadeMs}ms` }}>
@@ -85,7 +85,7 @@ export default function AuthLayout({ title, subtitle, children, noHero = false }
           </section>
         )}
 
-        <div className="auth-card glass" style={{ width: noHero ? '95%' : undefined }}>
+        <div className="auth-card glass" style={{ width: noHero ? '100%' : undefined }}>
           <div className="card-header">
             <LogoMark size={44} />
             <div>
