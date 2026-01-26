@@ -29,3 +29,8 @@ export async function fetchCurrentCourses(userId) {
   const { data } = await axios.get(`${API}/marks/current-courses/${userId}`);
   return Array.isArray(data?.courses) ? data.courses : [];
 }
+
+export async function fetchMarksSummary(userId) {
+  const { data } = await axios.get(`${API}/marks/summary/${userId}`);
+  return Array.isArray(data?.summary) ? data.summary : [];
+}

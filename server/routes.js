@@ -25,6 +25,20 @@ const upload = multer({
     limits: { fileSize: 25 * 1024 * 1024 }, // 25 MB
 });
 
+// Resolve course resources directory: prefer server/resources, fallback to docs/
+function getResourcesDir() {
+    try {
+        const serverDir = path.join(__dirname, 'resources');
+        if (fs.existsSync(serverDir)) return serverDir;
+    } catch (_) {}
+    try {
+        const projectRoot = path.resolve(__dirname, '..');
+        const docsDir = path.join(projectRoot, 'docs', 'BRACU-Gradesheet-Analyzer-main', 'resources');
+        if (fs.existsSync(docsDir)) return docsDir;
+    } catch (_) {}
+    return null;
+}
+
 // ==================== AUTH ROUTES ====================
 
 // Test route
@@ -366,13 +380,11 @@ router.get('/courses/suggestions/:userId', async (req, res) => {
     try {
         const { userId } = req.params;
         if (!userId) return res.status(400).json({ error: 'Missing userId' });
-
-        const projectRoot = path.resolve(__dirname, '..');
-        const resourcesDir = path.join(projectRoot, 'docs', 'BRACU-Gradesheet-Analyzer-main', 'resources');
+        const resourcesDir = getResourcesDir();
         let allCodes = [];
         let titlesByCode = {};
         try {
-            const files = fs.readdirSync(resourcesDir).filter((f) => f.endsWith('.json'));
+            const files = resourcesDir ? fs.readdirSync(resourcesDir).filter((f) => f.endsWith('.json')) : [];
             allCodes = files.map((f) => path.basename(f, '.json').toUpperCase());
             for (const f of files) {
                 const code = path.basename(f, '.json').toUpperCase();
@@ -414,11 +426,10 @@ router.post('/marks/current-courses', async (req, res) => {
         if (uniqueCodes.length > 5) return res.status(400).json({ error: 'Maximum 5 courses allowed' });
 
         // Optional: validate codes exist in resources
-        const projectRoot = path.resolve(__dirname, '..');
-        const resourcesDir = path.join(projectRoot, 'docs', 'BRACU-Gradesheet-Analyzer-main', 'resources');
+        const resourcesDir = getResourcesDir();
         let validCodes = new Set();
         try {
-            const files = fs.readdirSync(resourcesDir).filter((f) => f.endsWith('.json'));
+            const files = resourcesDir ? fs.readdirSync(resourcesDir).filter((f) => f.endsWith('.json')) : [];
             validCodes = new Set(files.map((f) => path.basename(f, '.json').toUpperCase()));
         } catch (_e) {
             validCodes = new Set();
@@ -438,20 +449,22 @@ router.post('/marks/current-courses', async (req, res) => {
             let title = null;
             let credit = null;
             try {
-                const fp = path.join(resourcesDir, `${course_code}.json`);
-                if (fs.existsSync(fp)) {
-                    const raw = fs.readFileSync(fp, 'utf8');
-                    const j = JSON.parse(raw);
-                    title = j.title || j.course_title || j.course_name || j.name || null;
-                    let cr = j.credit || j.credits || j.course_credit || null;
-                    if (typeof cr === 'string') {
-                        const m = cr.match(/\d+/);
-                        cr = m ? parseInt(m[0], 10) : null;
-                    } else if (typeof cr === 'number') {
-                        cr = Math.round(cr);
-                    }
-                    if (typeof cr === 'number' && cr >= 1 && cr <= 6) {
-                        credit = cr;
+                if (resourcesDir) {
+                    const fp = path.join(resourcesDir, `${course_code}.json`);
+                    if (fs.existsSync(fp)) {
+                        const raw = fs.readFileSync(fp, 'utf8');
+                        const j = JSON.parse(raw);
+                        title = j.title || j.course_title || j.course_name || j.name || null;
+                        let cr = j.credit || j.credits || j.course_credit || null;
+                        if (typeof cr === 'string') {
+                            const m = cr.match(/\d+/);
+                            cr = m ? parseInt(m[0], 10) : null;
+                        } else if (typeof cr === 'number') {
+                            cr = Math.round(cr);
+                        }
+                        if (typeof cr === 'number' && cr >= 1 && cr <= 6) {
+                            credit = cr;
+                        }
                     }
                 }
             } catch (_e) {
@@ -483,7 +496,34 @@ router.get('/marks/current-courses/:userId', async (req, res) => {
             .eq('term_name', 'Current')
             .order('id', { ascending: true });
         if (error) throw error;
-        res.json({ courses: data || [] });
+        // Enrich title from resources if missing or same as code
+        let enriched = Array.isArray(data) ? data.slice() : [];
+        const resourcesDir = getResourcesDir();
+        if (resourcesDir && enriched.length) {
+            for (let i = 0; i < enriched.length; i++) {
+                const row = enriched[i];
+                if (row && row.course_code) {
+                    try {
+                        const code = String(row.course_code || '').toUpperCase();
+                        const currentTitle = (row.title || '').toString().trim();
+                        const needsFill = !currentTitle || currentTitle.toUpperCase() === code;
+                        if (!needsFill) continue;
+                        const fp = path.join(resourcesDir, `${code}.json`);
+                        if (fs.existsSync(fp)) {
+                            const raw = fs.readFileSync(fp, 'utf8');
+                            const j = JSON.parse(raw);
+                            const t = j.title || j.course_title || j.course_name || j.name || null;
+                            if (t) {
+                                enriched[i] = { ...row, title: t };
+                            }
+                        }
+                    } catch (_) {
+                        // ignore parse errors; leave as-is
+                    }
+                }
+            }
+        }
+        res.json({ courses: enriched });
     } catch (error) {
         res.status(400).json({ error: error.message });
     }
@@ -502,6 +542,58 @@ router.delete('/marks/current-courses/:userId/:id', async (req, res) => {
             .eq('term_name', 'Current');
         if (error) throw error;
         res.json({ success: true });
+    } catch (error) {
+        res.status(400).json({ error: error.message });
+    }
+});
+
+// ==================== MARKS SUMMARY ====================
+// Summarize marks entered so far per course for the current term
+router.get('/marks/summary/:userId', async (req, res) => {
+    try {
+        const { userId } = req.params;
+        if (!userId) return res.status(400).json({ error: 'Missing userId' });
+
+        // Get current-term courses for user
+        const { data: courses, error: curErr } = await supabase
+            .from('marks_courses')
+            .select('course_code')
+            .eq('user_id', userId)
+            .eq('term_name', 'Current');
+        if (curErr) throw curErr;
+        const codes = (courses || []).map((c) => String(c.course_code || '').toUpperCase());
+        if (!codes.length) return res.json({ summary: [] });
+
+        // Aggregate marks per course from marks_items (if table exists)
+        // Expected schema: marks_items(user_id, course_code, term_name, score)
+        let items = [];
+        try {
+            const { data: rows, error: itemsErr } = await supabase
+                .from('marks_items')
+                .select('course_code, score')
+                .eq('user_id', userId)
+                .eq('term_name', 'Current');
+            if (itemsErr) {
+                // If table doesn't exist or query fails, return empty summary gracefully
+                items = [];
+            } else {
+                items = Array.isArray(rows) ? rows : [];
+            }
+        } catch (_e) {
+            items = [];
+        }
+
+        const sumByCode = {};
+        for (const it of items) {
+            const code = String(it.course_code || '').toUpperCase();
+            const score = Number(it.score);
+            if (!codes.includes(code)) continue;
+            if (!Number.isFinite(score)) continue;
+            sumByCode[code] = (sumByCode[code] || 0) + score;
+        }
+
+        const summary = codes.map((code) => ({ course_code: code, total_marks: sumByCode[code] ?? null }));
+        res.json({ summary });
     } catch (error) {
         res.status(400).json({ error: error.message });
     }

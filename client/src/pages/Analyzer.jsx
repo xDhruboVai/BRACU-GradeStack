@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { useNavigate } from 'react-router-dom';
 import AuthLayout from '../components/AuthLayout';
 import { supabase } from '../supabaseClient';
-import { fetchAttempts, fetchSemesters, fetchSuggestions, fetchCurrentCourses } from '../api/analyzerApi';
+import { fetchAttempts, fetchSemesters, fetchSuggestions, fetchCurrentCourses, fetchMarksSummary } from '../api/analyzerApi';
 import { computeCGPA, totalCreditsRequired, maxProjection } from '../utils/cgpaMath';
 
 const SESSION_KEY_PREFIX = 'gs.virtualSemester.v1:';
@@ -19,6 +19,7 @@ export default function Analyzer() {
   // Data
   const [suggestions, setSuggestions] = useState([]); // [{code, title}]
   const [matrix, setMatrix] = useState([]); // current-term courses [{id, course_code, title, credit}]
+  const [marksSummary, setMarksSummary] = useState([]); // [{course_code, total_marks}]
   const [attempts, setAttempts] = useState([]); // all attempts
   const [semesters, setSemesters] = useState([]);
 
@@ -74,6 +75,13 @@ export default function Analyzer() {
         setMatrix(Array.isArray(cur) ? cur : []);
         setAttempts(Array.isArray(att) ? att : []);
         setSemesters(Array.isArray(sems) ? sems : []);
+        // Fetch marks summary after courses are loaded
+        try {
+          const sum = await fetchMarksSummary(uid);
+          setMarksSummary(Array.isArray(sum) ? sum : []);
+        } catch (_) {
+          setMarksSummary([]);
+        }
       } catch (e) {
         console.error(e);
         setError('Failed to load data');
@@ -255,8 +263,14 @@ export default function Analyzer() {
                   {matrix.map((c) => (
                     <div key={c.id} style={{ background: '#1f1f1f', border: '1px solid #333', borderRadius: 12, padding: '8px 10px' }}>
                       <strong>{c.course_code}</strong>
-                      <div className="text-muted" style={{ fontSize: '0.85rem' }}>{c.title || '—'}</div>
-                      <div style={{ fontSize: '0.85rem' }}>{typeof c.credit === 'number' ? `${c.credit} cr` : '—'}</div>
+                      <div className="text-muted" style={{ fontSize: '0.85rem' }}>{c.title || '---'}</div>
+                      <div style={{ fontSize: '0.85rem', marginTop: 4 }}>
+                        <span className="text-muted">Marks - </span>
+                        {(() => {
+                          const rec = marksSummary.find((m) => String(m.course_code).toUpperCase() === String(c.course_code).toUpperCase());
+                          return (typeof rec?.total_marks === 'number' && Number.isFinite(rec.total_marks)) ? rec.total_marks : '---';
+                        })()}
+                      </div>
                     </div>
                   ))}
                 </div>
