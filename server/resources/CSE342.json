@@ -1,0 +1,198 @@
+{
+  "title": "Computer Systems Engineering",
+  "description": "No description provided.",
+  "credit": 3,
+  "elective_for": ["CSE", "CS"],
+  "resources": [],
+  "previous_questions": { "mid": "", "final": "" }
+}
+*** Add File: /Users/dihanislamdhrubo/Desktop/GradeStack/server/resources/CSE371.json
+{
+  "title": "Management Information Systems",
+  "description": "No description provided.",
+  "credit": 3,
+  "elective_for": ["CSE", "CS"],
+  "resources": [],
+  "previous_questions": { "mid": "", "final": "" }
+}
+*** Add File: /Users/dihanislamdhrubo/Desktop/GradeStack/server/resources/CSE390.json
+{
+  "title": "Technical Communication",
+  "description": "No description provided.",
+  "credit": 3,
+  "elective_for": ["CSE", "CS"],
+  "resources": [],
+  "previous_questions": { "mid": "", "final": "" }
+}
+*** Add File: /Users/dihanislamdhrubo/Desktop/GradeStack/server/resources/CSE391.json
+{
+  "title": "Programming for the Internet",
+  "description": "No description provided.",
+  "credit": 3,
+  "elective_for": ["CSE", "CS"],
+  "resources": [],
+  "previous_questions": { "mid": "", "final": "" }
+}
+*** Add File: /Users/dihanislamdhrubo/Desktop/GradeStack/server/resources/CSE392.json
+{
+  "title": "Signals and Systems",
+  "description": "No description provided.",
+  "credit": 3,
+  "elective_for": ["CSE", "CS"],
+  "resources": [],
+  "previous_questions": { "mid": "", "final": "" }
+}
+*** Add File: /Users/dihanislamdhrubo/Desktop/GradeStack/server/resources/CSE410.json
+{
+  "title": "Advance Programming In UNIX",
+  "description": "No description provided.",
+  "credit": 3,
+  "elective_for": ["CSE", "CS"],
+  "resources": [],
+  "previous_questions": { "mid": "", "final": "" }
+}
+*** Add File: /Users/dihanislamdhrubo/Desktop/GradeStack/server/resources/CSE419.json
+{
+  "title": "Programming Languages and Competitive Programming",
+  "description": "No description provided.",
+  "credit": 3,
+  "elective_for": ["CSE", "CS"],
+  "resources": [],
+  "previous_questions": { "mid": "", "final": "" }
+}
+*** Add File: /Users/dihanislamdhrubo/Desktop/GradeStack/server/resources/CSE424.json
+{
+  "title": "Pattern Recognition",
+  "description": "No description provided.",
+  "credit": 3,
+  "elective_for": ["CSE", "CS"],
+  "resources": [],
+  "previous_questions": { "mid": "", "final": "" }
+}
+*** Add File: /Users/dihanislamdhrubo/Desktop/GradeStack/server/resources/CSE425.json
+{
+  "title": "Neural Networks",
+  "description": "No description provided.",
+  "credit": 3,
+  "elective_for": ["CSE", "CS"],
+  "resources": [],
+  "previous_questions": { "mid": "", "final": "" }
+}
+*** Add File: /Users/dihanislamdhrubo/Desktop/GradeStack/server/resources/CSE426.json
+{
+  "title": "Advanced Algorithms",
+  "description": "No description provided.",
+  "credit": 3,
+  "elective_for": ["CSE", "CS"],
+  "resources": [],
+  "previous_questions": { "mid": "", "final": "" }
+}
+*** Add File: /Users/dihanislamdhrubo/Desktop/GradeStack/server/resources/CSE427.json
+{
+  "title": "Machine Learning",
+  "description": "No description provided.",
+  "credit": 3,
+  "elective_for": ["CSE", "CS"],
+  "resources": [],
+  "previous_questions": { "mid": "", "final": "" }
+}
+*** Add File: /Users/dihanislamdhrubo/Desktop/GradeStack/server/resources/CSE428.json
+{
+  "title": "Image Processing",
+  "description": "No description provided.",
+  "credit": 3,
+  "elective_for": ["CSE", "CS"],
+  "resources": [],
+  "previous_questions": { "mid": "", "final": "" }
+}
+*** Add File: /Users/dihanislamdhrubo/Desktop/GradeStack/server/resources/CSE429.json
+{
+  "title": "Basic Multimedia Theory",
+  "description": "No description provided.",
+  "credit": 3,
+  "elective_for": ["CSE", "CS"],
+  "resources": [],
+  "previous_questions": { "mid": "", "final": "" }
+}
+*** Add File: /Users/dihanislamdhrubo/Desktop/GradeStack/server/resources/CSE430.json
+{
+  "title": "Digital Signal Processing",
+  "description": "No description provided.",
+  "credit": 3,
+  "elective_for": ["CSE", "CS"],
+  "resources": [],
+  "previous_questions": { "mid": "", "final": "" }
+}
+*** Add File: /Users/dihanislamdhrubo/Desktop/GradeStack/server/resources/CSE431.json
+{
+  "title": "Natural Language Processing",
+  "description": "No description provided.",
+  "credit": 3,
+  "elective_for": ["CSE", "CS"],
+  "resources": [],
+  "previous_questions": { "mid": "", "final": "" }
+}
+*** Add File: /Users/dihanislamdhrubo/Desktop/GradeStack/server/resources/CSE432.json
+{
+  "title": "Speech Recognition and Synthesis",
+  "description": "No description provided.",
+  "credit": 3,
+  "elective_for": ["CSE", "CS"],
+  "resources": [],
+  "previous_questions": { "mid": "", "final": "" }
+}
+*** Add File: /Users/dihanislamdhrubo/Desktop/GradeStack/server/resources/CSE462.json
+{
+  "title": "Fault-Tolerant Systems",
+  "description": "No description provided.",
+  "credit": 3,
+  "elective_for": ["CSE", "CS"],
+  "resources": [],
+  "previous_questions": { "mid": "", "final": "" }
+}
+*** Add File: /Users/dihanislamdhrubo/Desktop/GradeStack/server/resources/CSE472.json
+{
+  "title": "Human-Computer Interface",
+  "description": "No description provided.",
+  "credit": 3,
+  "elective_for": ["CSE", "CS"],
+  "resources": [],
+  "previous_questions": { "mid": "", "final": "" }
+}
+*** Add File: /Users/dihanislamdhrubo/Desktop/GradeStack/server/resources/CSE473.json
+{
+  "title": "Financial Engineering & Technology",
+  "description": "No description provided.",
+  "credit": 3,
+  "elective_for": ["CSE", "CS"],
+  "resources": [],
+  "previous_questions": { "mid": "", "final": "" }
+}
+*** Add File: /Users/dihanislamdhrubo/Desktop/GradeStack/server/resources/CSE474.json
+{
+  "title": "Simulation and Modeling",
+  "description": "No description provided.",
+  "credit": 3,
+  "elective_for": ["CSE", "CS"],
+  "resources": [],
+  "previous_questions": { "mid": "", "final": "" }
+}
+*** Add File: /Users/dihanislamdhrubo/Desktop/GradeStack/server/resources/CSE490.json
+{
+  "title": "Special Topics",
+  "description": "No description provided.",
+  "credit": 3,
+  "elective_for": ["CSE", "CS"],
+  "resources": [],
+  "previous_questions": { "mid": "", "final": "" }
+}
+*** Add File: /Users/dihanislamdhrubo/Desktop/GradeStack/server/resources/CSE491.json
+{
+  "title": "Independent Study",
+  "description": "No description provided.",
+  "credit": 3,
+  "elective_for": ["CSE", "CS"],
+  "resources": [],
+  "previous_questions": { "mid": "", "final": "" }
+}
+*** End Patch

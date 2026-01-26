@@ -57,6 +57,9 @@ cs_elective = {
     "CSE462", "CSE471", "CSE472", "CSE473", "CSE474", "CSE490", "CSE491"
 }
 
+# CSE electives are those in cs_elective but not in core
+cse_elective = cs_elective.difference(core)
+
 comp_cod = {"PHY111", "PHY112", "ENG101", "ENG102", "MAT110", "MAT120", "MAT215", "MAT216", "STA201", "HUM103", "BNG103", "EMB101"}
 
 tarc = {"HUM103", "BNG103", "EMB101", "ENG102"}

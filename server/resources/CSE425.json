@@ -1,0 +1,8 @@
+{
+  "title": "Neural Networks",
+  "description": "No description provided.",
+  "credit": 3,
+  "elective_for": ["CSE", "CS"],
+  "resources": [],
+  "previous_questions": { "mid": "", "final": "" }
+}
