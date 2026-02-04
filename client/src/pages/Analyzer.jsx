@@ -3,18 +3,18 @@ import { useNavigate } from 'react-router-dom';
 import AuthLayout from '../components/AuthLayout';
 import { supabase } from '../supabaseClient';
 import { fetchAttempts, fetchSemesters, fetchSuggestions, fetchCurrentCourses, fetchMarksSummary } from '../api/analyzerApi';
-import { ResponsiveContainer } from 'recharts';
 import SmoothLineChart from '../components/SmoothLineChart';
 import CreditsProgressEChart from '../components/CreditsProgressEChart';
-import { computeCGPA, totalCreditsRequired, maxProjection } from '../utils/cgpaMath';
+import UnlockedCoursesGraph from '../components/UnlockedCoursesGraph';
+import { totalCreditsRequired, maxProjection } from '../utils/cgpaMath';
 
 const SESSION_KEY_PREFIX = 'gs.virtualSemester.v1:';
 
 export default function Analyzer() {
   const navigate = useNavigate();
-  const [activeTab, setActiveTab] = useState('courseRetake'); // future: cgpaPlanner, codPlanner, visuals, etc.
+  const [activeTab, setActiveTab] = useState('courseRetake'); 
 
-  // Auth
+  
   const [userId, setUserId] = useState('');
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -26,20 +26,20 @@ export default function Analyzer() {
   const [attempts, setAttempts] = useState([]); // all attempts
   const [semesters, setSemesters] = useState([]);
   const [profileMajor, setProfileMajor] = useState('CSE');
-  const [selectedTermDetail, setSelectedTermDetail] = useState(null); // { name, culprit }
+  const [selectedTermDetail, setSelectedTermDetail] = useState(null); 
 
-  // Virtual semester (session)
-  const [simCourses, setSimCourses] = useState([]); // [{code, credit, targetGpa}]
-  const [simRetakes, setSimRetakes] = useState([]); // [{code, credit, targetGpa}]
+  
+  const [simCourses, setSimCourses] = useState([]); 
+  const [simRetakes, setSimRetakes] = useState([]); 
   const [retakeSet, setRetakeSet] = useState(() => new Set());
 
-  // Inputs
+  
   const [courseCodeInput, setCourseCodeInput] = useState('');
   const [courseGpaInput, setCourseGpaInput] = useState('4.0');
   const [retakeCodeInput, setRetakeCodeInput] = useState('');
   const [retakeGpaInput, setRetakeGpaInput] = useState('4.0');
 
-  // Load session-backed virtual semester
+  
   const loadSession = (uid) => {
     try {
       const raw = sessionStorage.getItem(SESSION_KEY_PREFIX + uid);
@@ -80,14 +80,14 @@ export default function Analyzer() {
         setMatrix(Array.isArray(cur) ? cur : []);
         setAttempts(Array.isArray(att) ? att : []);
         setSemesters(Array.isArray(sems) ? sems : []);
-        // Fetch marks summary after courses are loaded
+        
         try {
           const sum = await fetchMarksSummary(uid);
           setMarksSummary(Array.isArray(sum) ? sum : []);
         } catch (_) {
           setMarksSummary([]);
         }
-        // Fetch profile major for credit requirements
+        
         try {
           const { data: profRes } = await supabase
             .from('user_profiles')
@@ -103,23 +103,29 @@ export default function Analyzer() {
         setLoading(false);
       }
     });
-    // Clear session when tab unloads (optional; sessionStorage usually clears on full tab close)
+    
     const handleUnload = () => {
       if (userId) sessionStorage.removeItem(SESSION_KEY_PREFIX + userId);
     };
     window.addEventListener('beforeunload', handleUnload);
     return () => window.removeEventListener('beforeunload', handleUnload);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
+    
   }, []);
 
   const latestAttempts = useMemo(() => attempts.filter((a) => a.is_latest), [attempts]);
+  const doneCodes = useMemo(() => {
+    const deny = new Set(['F','W','I']);
+    return latestAttempts
+      .filter((a) => !deny.has(String(a.grade || '').toUpperCase()))
+      .map((a) => String(a.course_code || '').toUpperCase());
+  }, [latestAttempts]);
   const retakeCandidates = useMemo(() => {
     return latestAttempts
       .filter((a) => typeof a.gpa === 'number' && a.gpa < 4.0)
       .sort((a, b) => a.gpa - b.gpa);
   }, [latestAttempts]);
 
-  // Baseline points and credits
+  
   const baseline = useMemo(() => {
     const latestByCourse = {};
     let credits = 0;
@@ -138,7 +144,7 @@ export default function Analyzer() {
   const creditForCode = (code, fallback) => {
     if (!code) return fallback ?? 3;
     const up = String(code).toUpperCase();
-    if (up === 'CSE400') return 4; // special-case per constraint
+    if (up === 'CSE400') return 4; 
     return typeof fallback === 'number' ? fallback : 3;
   };
 
@@ -146,7 +152,7 @@ export default function Analyzer() {
     let points = baseline.points;
     let credits = baseline.credits;
 
-    // Apply retakes: replace course contribution with target GPA
+    
     for (const r of simRetakes) {
       const code = String(r.code || '').toUpperCase();
       const base = baseline.latestByCourse[code];
@@ -158,7 +164,7 @@ export default function Analyzer() {
       }
     }
 
-    // Apply new simulated courses
+    
     for (const c of simCourses) {
       const credit = creditForCode(c.code, c.credit);
       points += Number(c.targetGpa) * credit;
@@ -170,16 +176,16 @@ export default function Analyzer() {
     const termsCount = semesters.length;
     const retakesCount = attempts.filter((a) => a.is_retake).length;
 
-    // Max projection should reflect simulated overlay (live points/credits)
+    
     const proj = maxProjection({ major: null }, credits, points);
 
     return { cgpa, credits, earned, termsCount, retakesCount, remaining: proj.remaining, maxCgpa: proj.maxCgpa };
   };
 
-  // Visual Analytics data
+  
   const creditsEarned = useMemo(() => latestAttempts.reduce((s,a)=> s + (a.credit || 0), 0), [latestAttempts]);
   const required = useMemo(() => totalCreditsRequired(profileMajor), [profileMajor]);
-  // ECharts component uses required + creditsEarned directly
+  
 
   const termNameById = useMemo(() => {
     const m = {};
@@ -197,7 +203,7 @@ export default function Analyzer() {
       acc[name].credits += a.credit;
     }
     let rows = Object.values(acc).map(r => ({ name: r.name, gpa: r.credits > 0 ? Number((r.points / r.credits).toFixed(2)) : null, semester_id: r.semester_id }));
-    // virtual semester from simCourses + retakes
+    
     if ((simCourses.length || 0) + (simRetakes.length || 0)) {
       let vPoints = 0; let vCredits = 0;
       for (const c of (simCourses || [])) { vPoints += Number(c.targetGpa || 0) * Number(c.credit || 3); vCredits += Number(c.credit || 3); }
@@ -230,7 +236,7 @@ export default function Analyzer() {
     if (!list.length) return null;
     let worst = null; let worstScore = -Infinity;
     for (const a of list) {
-      const score = (4 - a.gpa) * a.credit; // higher = worse
+      const score = (4 - a.gpa) * a.credit; 
       if (score > worstScore) { worstScore = score; worst = a; }
     }
     if (!worst || worstScore <= 0) return 'All courses at 4.0';
@@ -257,7 +263,7 @@ export default function Analyzer() {
     if (!code) return;
     const base = baseline.latestByCourse[code];
     if (!base || typeof base.gpa !== 'number') return;
-    if (retakeSet.has(code)) return; // one retake per course
+    if (retakeSet.has(code)) return; 
     const credit = creditForCode(code, base.credit);
     const targetGpa = Math.max(0, Math.min(4, Number(retakeGpaInput || 0)));
     const next = [...simRetakes, { code, credit, targetGpa }];
@@ -300,7 +306,8 @@ export default function Analyzer() {
       <div style={{ display: 'grid', gap: '1rem' }}>
         <div className="sticky-tabs">
           <TabButton id="courseRetake" label="Courses & Retake" />
-          {/* Future: <TabButton id="cgpaPlanner" label="CGPA Planner" /> */}
+          {}
+          <TabButton id="unlocked" label="Unlocked" />
           <TabButton id="visuals" label="Visual Analytics" />
           <div style={{ marginLeft: 'auto' }}>
             <button className="button" type="button" onClick={() => navigate('/dashboard')}>
@@ -314,7 +321,7 @@ export default function Analyzer() {
 
         {!loading && !error && activeTab === 'courseRetake' && (
           <div style={{ display: 'grid', gap: '1rem' }}>
-            {/* Live KPIs at top */}
+            {}
             <div className="panel" style={{ display: 'grid', gridTemplateColumns: 'repeat(6, 1fr)', gap: '0.75rem' }}>
               {(() => { const lm = computeLiveMetrics(); return (
                 <>
@@ -328,7 +335,7 @@ export default function Analyzer() {
               ); })()}
             </div>
 
-            {/* Matrix of current-term courses */}
+            {}
             <div className="panel">
               <h3 className="panel-title">Current-Term Courses</h3>
               {matrix.length === 0 ? (
@@ -352,7 +359,7 @@ export default function Analyzer() {
               )}
             </div>
 
-            {/* Simulate adding a course */}
+            {}
             <div className="panel">
               <h3 className="panel-title">Simulate a Course</h3>
               <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
@@ -394,7 +401,7 @@ export default function Analyzer() {
               )}
             </div>
 
-            {/* Simulate a retake */}
+            {}
             <div className="panel">
               <h3 className="panel-title">Simulate a Retake</h3>
               <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
@@ -431,7 +438,7 @@ export default function Analyzer() {
               )}
             </div>
 
-            {/* KPIs moved to top; removed bottom instance */}
+            {}
           </div>
         )}
 
@@ -478,6 +485,13 @@ export default function Analyzer() {
               </div>
             </section>
           </div>
+        )}
+
+        {!loading && !error && activeTab === 'unlocked' && (
+          <UnlockedCoursesGraph
+            doneCodes={doneCodes}
+            currentCodes={(matrix || []).map((c) => String(c.course_code || '').toUpperCase()).filter(Boolean)}
+          />
         )}
       </div>
     </AuthLayout>

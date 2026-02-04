@@ -9,7 +9,7 @@ preq = {
     "CSE221": ["CSE321", "CSE331", "CSE370", "CSE422"],
     "CSE230": [], "CSE250": ["CSE251"], "CSE251": ["CSE260", "CSE350"],
     "CSE260": ["CSE340", "CSE341", "CSE460", "CSE461"],
-    "CSE340": ["CSE341", "CSE420"], "CSE341": ["CSE360", "CSE461"],
+    "CSE340": ["CSE420"], "CSE341": ["CSE360", "CSE461"],
     "CSE320": ["CSE421"], "CSE350": [], "CSE360": ["CSE461"],
     "CSE370": ["CSE470", "CSE471"], "CSE420": [], "CSE421": ["CSE400"], "CSE422": ["CSE400"],
     "CSE423": [], "CSE460": [], "CSE461": [], "CSE470": ["CSE400"], "CSE471": [],
@@ -57,7 +57,6 @@ cs_elective = {
     "CSE462", "CSE471", "CSE472", "CSE473", "CSE474", "CSE490", "CSE491"
 }
 
-# CSE electives are those in cs_elective but not in core
 cse_elective = cs_elective.difference(core)
 
 comp_cod = {"PHY111", "PHY112", "ENG101", "ENG102", "MAT110", "MAT120", "MAT215", "MAT216", "STA201", "HUM103", "BNG103", "EMB101"}

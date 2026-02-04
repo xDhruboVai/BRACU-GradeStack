@@ -4,7 +4,6 @@ import AuthLayout from '../components/AuthLayout';
 import { supabase } from '../supabaseClient';
 import { fetchAttempts, fetchSemesters } from '../api/analyzerApi';
 import { totalCreditsRequired } from '../utils/cgpaMath';
-import { ResponsiveContainer } from 'recharts';
 import SmoothLineChart from '../components/SmoothLineChart';
 import CreditsProgressEChart from '../components/CreditsProgressEChart';
 
@@ -27,14 +26,14 @@ export default function Visuals() {
       }
       const uid = data.session.user.id;
       setUserId(uid);
-      // load profile
+      
       const { data: profRes } = await supabase
         .from('user_profiles')
         .select('user_id, full_name, student_id, major')
         .eq('user_id', uid)
         .maybeSingle();
       setProfile(profRes || {});
-      // data for charts
+      
       try {
         const [att, sems] = await Promise.all([
           fetchAttempts(uid),
@@ -43,7 +42,7 @@ export default function Visuals() {
         setAttempts(Array.isArray(att) ? att : []);
         setSemesters(Array.isArray(sems) ? sems : []);
       } catch (_) {}
-      // virtual semester from session storage
+      
       try {
         const raw = sessionStorage.getItem(SESSION_KEY_PREFIX + uid);
         if (raw) {
@@ -61,17 +60,17 @@ export default function Visuals() {
   const creditsEarned = useMemo(() => latestAttempts.reduce((s,a)=> s + (a.credit || 0), 0), [latestAttempts]);
   const required = useMemo(() => totalCreditsRequired(profile.major), [profile]);
 
-  // Credits progress values
-  // (ECharts component computes its own series from these numbers)
+  
+  
 
-  // Term name map
+  
   const termNameById = useMemo(() => {
     const m = {};
     for (const s of semesters) m[s.id] = s.name || `Term ${s.term_index}`;
     return m;
   }, [semesters]);
 
-  // GPA per term
+  
   const gpaTrend = useMemo(() => {
     const acc = {};
     for (const a of attempts) {
@@ -82,7 +81,7 @@ export default function Visuals() {
       acc[name].credits += a.credit;
     }
     let rows = Object.values(acc).map(r => ({ name: r.name, gpa: r.credits > 0 ? Number((r.points / r.credits).toFixed(2)) : null, semester_id: r.semester_id }));
-    // virtual semester from simCourses + retakes
+    
     if ((virt.simCourses?.length || 0) + (virt.simRetakes?.length || 0)) {
       let vPoints = 0; let vCredits = 0;
       for (const c of (virt.simCourses || [])) { vPoints += Number(c.targetGpa || 0) * Number(c.credit || 3); vCredits += Number(c.credit || 3); }
@@ -93,11 +92,11 @@ export default function Visuals() {
     return rows;
   }, [attempts, termNameById, virt]);
 
-  // CGPA trend: use parser-provided cumulative_cgpa if present, else roll our own cumulatively
+  
   const cgpaTrend = useMemo(() => {
     const sems = semesters.slice().sort((a,b)=> (a.term_index ?? 0) - (b.term_index ?? 0));
     let rows = sems.map(s => ({ name: s.name || `Term ${s.term_index}`, cgpa: (typeof s.cumulative_cgpa === 'number') ? Number(s.cumulative_cgpa.toFixed(2)) : null }));
-    // virtual as cumulative add-on: blend last points+credits with virtual points/credits
+    
     if ((virt.simCourses?.length || 0) + (virt.simRetakes?.length || 0)) {
       let points = 0; let credits = 0;
       for (const a of attempts.filter(a => a.is_latest && typeof a.credit === 'number' && typeof a.gpa === 'number')) {
@@ -112,13 +111,13 @@ export default function Visuals() {
     return rows;
   }, [semesters, attempts, virt]);
 
-  // Min deviation course by term: weighted distance from 4.0
+  
   const culpritForSemester = (semester_id) => {
     const list = attempts.filter(a => a.semester_id === semester_id && typeof a.gpa === 'number' && typeof a.credit === 'number');
     if (!list.length) return null;
     let worst = null; let worstScore = -Infinity;
     for (const a of list) {
-      const score = (4 - a.gpa) * a.credit; // higher = worse
+      const score = (4 - a.gpa) * a.credit; 
       if (score > worstScore) { worstScore = score; worst = a; }
     }
     if (!worst || worstScore <= 0) return 'All courses at 4.0';
@@ -132,7 +131,7 @@ export default function Visuals() {
           <button className="button" type="button" onClick={() => navigate('/dashboard')} style={{ padding: '0.4rem 0.8rem' }}>← Back to Dashboard</button>
         </div>
 
-        {/* Credits Progress with ECharts Donut */}
+        {}
         <section className="panel" style={{ textAlign: 'left' }}>
           <h3 className="panel-title">Credits Progress</h3>
           <div className="text-muted" style={{ marginBottom: '0.5rem' }}>
@@ -165,7 +164,7 @@ export default function Visuals() {
           )}
         </section>
 
-        {/* CGPA Trend */}
+        {}
         <section className="panel" style={{ textAlign: 'left' }}>
           <h3 className="panel-title">CGPA Trend</h3>
           <div style={{ width: '100%', height: 300 }}>

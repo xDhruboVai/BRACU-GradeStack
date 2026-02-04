@@ -1,11 +1,11 @@
-// Compute CGPA from latest attempts
+
 export function computeCGPA(latestAttempts) {
   const credits = (latestAttempts || []).reduce((s,a)=> s + (a.credit || 0), 0);
   const points = (latestAttempts || []).reduce((s,a)=> s + ((a.gpa || 0) * (a.credit || 0)), 0);
   return credits > 0 ? Number((points / credits).toFixed(2)) : null;
 }
 
-// Estimate total credits required per major
+
 export function totalCreditsRequired(major) {
   const m = String(major || '').toUpperCase();
   const map = {

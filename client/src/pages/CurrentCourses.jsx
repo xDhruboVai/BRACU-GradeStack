@@ -8,14 +8,14 @@ export default function CurrentCourses() {
   const [userId, setUserId] = useState('');
   const [suggestions, setSuggestions] = useState([]);
   const [courseInput, setCourseInput] = useState('');
-  const [currentCourses, setCurrentCourses] = useState([]); // no longer used for saving; kept for minimal change
+  // current courses are managed server-side; local state removed
   const [saving, setSaving] = useState(false);
   const [savedList, setSavedList] = useState([]);
   const [toast, setToast] = useState(null); // { type: 'success'|'error', text: string }
   const api = process.env.REACT_APP_API_URL;
 
   useEffect(() => {
-    // lazy import to avoid circular
+    
     import('../supabaseClient').then(({ supabase }) => {
       supabase.auth.getSession().then(({ data }) => {
         if (!data.session) {
@@ -68,9 +68,7 @@ export default function CurrentCourses() {
     }
   };
 
-  const removeCourse = (code) => {
-    setCurrentCourses((prev) => prev.filter((c) => c !== code));
-  };
+  // removeCourse and local list are deprecated; removal happens server-side in Saved list
 
   // save button removed; addCourse immediately persists
 
@@ -129,7 +127,7 @@ export default function CurrentCourses() {
                     <strong>{c.course_code}</strong>
                     {c.title ? <span style={{ fontSize: '0.85rem', color: '#888' }}>{c.title}</span> : null}
                   </div>
-                  {/* credit removed per product decision */}
+                  {}
                   <button
                     type="button"
                     title="Remove"

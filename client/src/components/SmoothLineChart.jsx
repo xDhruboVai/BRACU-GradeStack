@@ -7,17 +7,6 @@ import { CanvasRenderer } from 'echarts/renderers';
 
 echarts.use([ELineChart, GridComponent, TooltipComponent, LegendComponent, CanvasRenderer]);
 
-/**
- * Smooth, animated line/area chart for GPA/CGPA trends (dark theme).
- * props:
- * - data: array of objects ({ name, valueKey, semester_id? })
- * - nameKey: field name for x labels (default 'name')
- * - valueKey: field name for numeric values (default 'value')
- * - color: base color (e.g. '#22c55e')
- * - label: series name for tooltip/legend (e.g. 'GPA')
- * - yDomain: [min, max] (default [0, 4])
- * - onPointClick: function({ name, semester_id, value })
- */
 export default function SmoothLineChart({
   data = [],
   nameKey = 'name',

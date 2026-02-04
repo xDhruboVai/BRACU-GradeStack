@@ -12,10 +12,10 @@ export default function CreditsProgressEChart({ required = 0, earned = 0 }) {
   const pct = Math.max(0, Math.min(100, Math.round((Number(earned) / (Number(required) || 1)) * 100)));
 
   const option = useMemo(() => {
-    // Theme: cyan/blue gradient for earned, deep slate for remaining
+    
     const earnedColor = new echarts.graphic.LinearGradient(0, 0, 0, 1, [
-      { offset: 0, color: '#06b6d4' }, // cyan-500
-      { offset: 1, color: '#0ea5e9' }, // sky-500
+      { offset: 0, color: '#06b6d4' }, 
+      { offset: 1, color: '#0ea5e9' }, 
     ]);
     const remainColor = new echarts.graphic.LinearGradient(0, 0, 0, 1, [
       { offset: 0, color: '#2a2f39' },
@@ -32,7 +32,7 @@ export default function CreditsProgressEChart({ required = 0, earned = 0 }) {
         formatter: (p) => `${p.name}: ${p.value} (${Math.round(p.percent)}%)`,
       },
       series: [
-        // Depth shadow (underlay) for 3D look
+        
         {
           type: 'pie',
           silent: true,
@@ -53,7 +53,7 @@ export default function CreditsProgressEChart({ required = 0, earned = 0 }) {
           ],
           hoverAnimation: false,
         },
-        // Main thick ring
+        
         {
           type: 'pie',
           z: 3,
@@ -74,7 +74,7 @@ export default function CreditsProgressEChart({ required = 0, earned = 0 }) {
           animationDuration: 600,
           animationEasing: 'cubicOut',
         },
-        // Inner bevel highlight
+        
         {
           type: 'pie',
           silent: true,
@@ -94,7 +94,7 @@ export default function CreditsProgressEChart({ required = 0, earned = 0 }) {
         },
       ],
     };
-  }, [earned, remaining, required, pct]);
+  }, [earned, remaining]);
 
   return (
     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 36, width: '100%' }}>

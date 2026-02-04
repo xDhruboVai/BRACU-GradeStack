@@ -14,7 +14,7 @@ export default function Signup() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
-  const api = process.env.REACT_APP_API_URL || 'http://localhost:5001/api';
+  const api = process.env.REACT_APP_API_URL || 'http:
 
   const strength = useMemo(() => {
     let score = 0;
@@ -22,7 +22,7 @@ export default function Signup() {
     if (/[A-Z]/.test(password)) score++;
     if (/[0-9]/.test(password)) score++;
     if (/[^A-Za-z0-9]/.test(password)) score++;
-    return score; // 0-4
+    return score; 
   }, [password]);
 
   const handleSubmit = async (e) => {

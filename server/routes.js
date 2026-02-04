@@ -5,8 +5,9 @@ const multer = require('multer');
 const fs = require('fs');
 const path = require('path');
 const { spawn } = require('child_process');
+const { getCseGraphData } = require('./cse_graph');
 
-// =============== Upload setup for PDF parsing ===============
+
 const uploadDir = path.join(__dirname, 'uploads');
 if (!fs.existsSync(uploadDir)) fs.mkdirSync(uploadDir, { recursive: true });
 const upload = multer({
@@ -22,10 +23,10 @@ const upload = multer({
         if (file.mimetype === 'application/pdf') return cb(null, true);
         cb(new Error('Only PDF files are allowed'));
     },
-    limits: { fileSize: 25 * 1024 * 1024 }, // 25 MB
+    limits: { fileSize: 25 * 1024 * 1024 }, 
 });
 
-// Resolve course resources directory: prefer server/resources, fallback to docs/
+
 function getResourcesDir() {
     try {
         const serverDir = path.join(__dirname, 'resources');
@@ -39,14 +40,14 @@ function getResourcesDir() {
     return null;
 }
 
-// ==================== AUTH ROUTES ====================
 
-// Test route
+
+
 router.get('/test', (req, res) => {
     res.json({ message: 'API is working!' });
 });
 
-// Parse gradesheet: accepts multipart/form-data with field 'file'
+
 router.post('/parse', upload.single('file'), async (req, res) => {
     const cleanup = () => {
         if (req.file && req.file.path) {
@@ -101,13 +102,13 @@ router.post('/parse', upload.single('file'), async (req, res) => {
     }
 });
 
-// Signup route (no 2FA/email confirmation; create via admin and upsert profile)
+
 router.post('/auth/signup', async (req, res) => {
     try {
         const { email, password, fullName, studentId, major = 'CSE' } = req.body;
         if (!email || !password) return res.status(400).json({ error: 'Email and password required' });
 
-        // Create user via Admin API with email_confirm=true to bypass email confirmation
+        
         const { data, error } = await supabase.auth.admin.createUser({
             email,
             password,
@@ -118,7 +119,7 @@ router.post('/auth/signup', async (req, res) => {
 
         const userId = data.user.id;
 
-        // Hash password and upsert user_profiles
+        
         const bcrypt = require('bcryptjs');
         const hashed = await bcrypt.hash(password, 12);
         const { error: upsertErr } = await supabase
@@ -146,13 +147,13 @@ router.post('/auth/signup', async (req, res) => {
     }
 });
 
-// Login route (ensure profile exists and is synced)
+
 router.post('/auth/login', async (req, res) => {
     try {
         const { email, password } = req.body;
         if (!email || !password) return res.status(400).json({ error: 'Email and password required' });
 
-        // Use password auth
+        
         const { data, error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
 
@@ -190,9 +191,9 @@ router.post('/auth/login', async (req, res) => {
     }
 });
 
-// ==================== USER PROFILE ROUTES ====================
 
-// Get user profile
+
+
 router.get('/profile/:userId', async (req, res) => {
     try {
         const { userId } = req.params;
@@ -211,7 +212,7 @@ router.get('/profile/:userId', async (req, res) => {
     }
 });
 
-// Update user profile
+
 router.put('/profile/:userId', async (req, res) => {
     try {
         const { userId } = req.params;
@@ -238,8 +239,8 @@ router.put('/profile/:userId', async (req, res) => {
 
 module.exports = router;
 
-// ==================== PARSE & SAVE ROUTE ====================
-// Upload a PDF, parse it via Python, purge previous records, and save to DB
+
+
 router.post('/parse-and-save', upload.single('file'), async (req, res) => {
     const cleanup = () => {
         if (req.file && req.file.path) {
@@ -269,7 +270,7 @@ router.post('/parse-and-save', upload.single('file'), async (req, res) => {
             return res.status(500).json({ error: 'Parser script not found' });
         }
 
-        // Run parser
+        
         const child = spawn(pythonBin, [scriptPath, req.file.path], { cwd: projectRoot, env: { ...process.env } });
         let stdout = '';
         let stderr = '';
@@ -290,7 +291,7 @@ router.post('/parse-and-save', upload.single('file'), async (req, res) => {
                 return res.status(400).json(parsed);
             }
 
-            // Normalize data
+            
             const profile = parsed.profile || {};
             const semesters = Array.isArray(parsed.semesters) ? parsed.semesters : [];
             const attempts = Array.isArray(parsed.course_attempts) ? parsed.course_attempts : [];
@@ -316,13 +317,13 @@ router.post('/parse-and-save', upload.single('file'), async (req, res) => {
                     }, { onConflict: 'user_id' });
                 if (upErr) throw upErr;
 
-                // Purge existing data
+                
                 const { error: delAttErr } = await supabase.from('course_attempts').delete().eq('user_id', userId);
                 if (delAttErr) throw delAttErr;
                 const { error: delSemErr } = await supabase.from('semesters').delete().eq('user_id', userId);
                 if (delSemErr) throw delSemErr;
 
-                // Insert semesters and get ids
+                
                 let semIdMap = {};
                 if (normSemesters.length > 0) {
                     const { data: semRows, error: insSemErr } = await supabase
@@ -335,7 +336,7 @@ router.post('/parse-and-save', upload.single('file'), async (req, res) => {
                     }
                 }
 
-                // Build attempts batch
+                
                 const attemptRecords = attempts.map((att) => ({
                     user_id: userId,
                     semester_id: semIdMap[String(att.semester || '').trim()] || null,
@@ -374,8 +375,8 @@ router.post('/parse-and-save', upload.single('file'), async (req, res) => {
     }
 });
 
-// ==================== COURSE SUGGESTIONS ====================
-// List available course codes not yet completed by the user
+
+
 router.get('/courses/suggestions/:userId', async (req, res) => {
     try {
         const { userId } = req.params;
@@ -395,7 +396,7 @@ router.get('/courses/suggestions/:userId', async (req, res) => {
                 } catch (_) {}
             }
         } catch (_e) {
-            // If resources not found, return empty list gracefully
+            
             allCodes = [];
         }
 
@@ -425,7 +426,7 @@ router.post('/marks/current-courses', async (req, res) => {
         if (uniqueCodes.length === 0) return res.status(400).json({ error: 'No courses provided' });
         if (uniqueCodes.length > 5) return res.status(400).json({ error: 'Maximum 5 courses allowed' });
 
-        // Optional: validate codes exist in resources
+        
         const resourcesDir = getResourcesDir();
         let validCodes = new Set();
         try {
@@ -437,14 +438,14 @@ router.post('/marks/current-courses', async (req, res) => {
         const toSave = uniqueCodes.filter((c) => validCodes.size === 0 || validCodes.has(c));
         if (toSave.length === 0) return res.status(400).json({ error: 'Provided course codes are not recognized' });
 
-        // Strategy: overwrite existing "Current" term entries for this user
+        
         const { error: delErr } = await supabase
             .from('marks_courses')
             .delete()
             .eq('user_id', userId)
             .eq('term_name', 'Current');
         if (delErr) throw delErr;
-        // Prefill title/credit from resources when available
+        
         const rows = toSave.map((course_code) => {
             let title = null;
             try {
@@ -457,7 +458,7 @@ router.post('/marks/current-courses', async (req, res) => {
                     }
                 }
             } catch (_e) {
-                // ignore parse errors, fallback to nulls
+                
             }
             return { user_id: userId, course_code, term_name: 'Current', title };
         });
@@ -473,7 +474,7 @@ router.post('/marks/current-courses', async (req, res) => {
     }
 });
 
-// ==================== READ CURRENT SEMESTER COURSES ====================
+
 router.get('/marks/current-courses/:userId', async (req, res) => {
     try {
         const { userId } = req.params;
@@ -485,7 +486,7 @@ router.get('/marks/current-courses/:userId', async (req, res) => {
             .eq('term_name', 'Current')
             .order('id', { ascending: true });
         if (error) throw error;
-        // Enrich title from resources if missing or same as code
+        
         let enriched = Array.isArray(data) ? data.slice() : [];
         const resourcesDir = getResourcesDir();
         if (resourcesDir && enriched.length) {
@@ -507,7 +508,7 @@ router.get('/marks/current-courses/:userId', async (req, res) => {
                             }
                         }
                     } catch (_) {
-                        // ignore parse errors; leave as-is
+                        
                     }
                 }
             }
@@ -518,7 +519,7 @@ router.get('/marks/current-courses/:userId', async (req, res) => {
     }
 });
 
-// ==================== DELETE CURRENT SEMESTER COURSE ====================
+
 router.delete('/marks/current-courses/:userId/:id', async (req, res) => {
     try {
         const { userId, id } = req.params;
@@ -536,14 +537,14 @@ router.delete('/marks/current-courses/:userId/:id', async (req, res) => {
     }
 });
 
-// ==================== MARKS SUMMARY ====================
-// Summarize marks entered so far per course for the current term
+
+
 router.get('/marks/summary/:userId', async (req, res) => {
     try {
         const { userId } = req.params;
         if (!userId) return res.status(400).json({ error: 'Missing userId' });
 
-        // Get current-term courses for user
+        
         const { data: courses, error: curErr } = await supabase
             .from('marks_courses')
             .select('course_code')
@@ -563,7 +564,7 @@ router.get('/marks/summary/:userId', async (req, res) => {
                 .eq('user_id', userId)
                 .eq('term_name', 'Current');
             if (itemsErr) {
-                // If table doesn't exist or query fails, return empty summary gracefully
+                
                 items = [];
             } else {
                 items = Array.isArray(rows) ? rows : [];
@@ -607,7 +608,7 @@ router.get('/semesters/:userId', async (req, res) => {
     }
 });
 
-// Fetch course attempts for a user
+
 router.get('/course-attempts/:userId', async (req, res) => {
     try {
         const { userId } = req.params;
@@ -624,7 +625,7 @@ router.get('/course-attempts/:userId', async (req, res) => {
     }
 });
 
-// Analyzer summary: profile and KPIs
+
 router.get('/analyzer/summary/:userId', async (req, res) => {
     try {
         const { userId } = req.params;
@@ -660,6 +661,33 @@ router.get('/analyzer/summary/:userId', async (req, res) => {
             profile: profile || null,
             kpis: { cgpa, creditsEarned: credits, retakesCount, termsCount }
         });
+    } catch (error) {
+        res.status(400).json({ error: error.message });
+    }
+});
+
+
+
+
+router.get('/cse/graph', async (_req, res) => {
+    try {
+        const data = getCseGraphData();
+        
+        const resourcesDir = getResourcesDir();
+        const titles = {};
+        if (resourcesDir && Array.isArray(data.nodes)) {
+            for (const code of data.nodes) {
+                try {
+                    const fp = path.join(resourcesDir, `${code}.json`);
+                    if (fs.existsSync(fp)) {
+                        const raw = fs.readFileSync(fp, 'utf8');
+                        const j = JSON.parse(raw);
+                        titles[code] = j.title || j.course_title || j.course_name || j.name || null;
+                    }
+                } catch (_) {}
+            }
+        }
+        res.json({ ...data, titles });
     } catch (error) {
         res.status(400).json({ error: error.message });
     }

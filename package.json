@@ -1,0 +1,13 @@
+{
+  "name": "gradestack-tools",
+  "private": true,
+  "version": "1.0.0",
+  "license": "UNLICENSED",
+  "scripts": {
+    "strip:all": "node tools/strip-comments.js"
+  },
+  "devDependencies": {
+    "globby": "^13.2.2",
+    "strip-comments": "^2.0.1"
+  }
+}

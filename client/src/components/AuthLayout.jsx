@@ -32,7 +32,7 @@ export default function AuthLayout({ title, subtitle, children, noHero = false }
         setPrevIndex(i);
         setShowPrev(true);
         const next = (i + 1) % messages.length;
-        // hide previous after fade completes
+        
         setTimeout(() => setShowPrev(false), fadeMs);
         return next;
       });
@@ -70,7 +70,7 @@ export default function AuthLayout({ title, subtitle, children, noHero = false }
       <div className={noHero ? "auth-container no-hero" : "auth-container"}>
         {!noHero && (
           <section className="hero" aria-live="polite">
-            <div className="hero-stack" style={{ ['--heroFadeMs']: `${fadeMs}ms` }}>
+            <div className="hero-stack" style={{ '--heroFadeMs': `${fadeMs}ms` }}>
               {showPrev && (
                 <div className="hero-layer hero-out">
                   <h2 className="hero-title">{previous.title}</h2>

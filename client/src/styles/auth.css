@@ -1,4 +1,3 @@
-/* Auth page styles: black/white with neon & purple accents */
 
 .auth-wrapper {
   min-height: 100vh;
@@ -12,7 +11,6 @@
   overflow: hidden;
 }
 
-/* Animated aurora background */
 .bg-aurora {
   position: absolute;
   inset: -20% -10% -20% -10%;
@@ -24,7 +22,6 @@
   animation: drift 22s linear infinite alternate;
 }
 
-/* Background photo (low opacity) */
 .bg-photo {
   position: absolute;
   inset: 0;
@@ -42,7 +39,6 @@
   100% { transform: translate3d(10px,-10px,0) scale(1.02); }
 }
 
-/* Neon grid overlay */
 .grid-overlay {
   position: absolute;
   inset: 0;
@@ -73,7 +69,6 @@
   z-index: 1;
 }
 
-/* Full-width mode when hero is disabled (Analyzer etc.) */
 .auth-container.no-hero {
   max-width: none;
   grid-template-columns: 1fr;
@@ -102,11 +97,9 @@
 }
 .hero-copy { color: var(--color-muted); margin-top: 0.75rem; max-width: 720px; }
 
-/* Smooth transition for rotating hero text */
 .hero-animated { animation: fadeSlide 480ms ease both; }
 @keyframes fadeSlide { from { opacity: 0; transform: translateY(8px); } to { opacity: 1; transform: translateY(0); } }
 
-/* Crossfade stack for previous/current hero messages */
 .hero-stack { position: relative; min-height: 120px; }
 .hero-layer {
   position: absolute;
@@ -212,8 +205,7 @@
   border-radius: 12px;
   font-weight: 600;
   color: #0b0b0d;
-  /* Animated gradient background */
-  background: linear-gradient(135deg, var(--color-neon), var(--color-purple));
+    background: linear-gradient(135deg, var(--color-neon), var(--color-purple));
   background-size: 200% 200%;
   animation: gsGradientShift 6s ease infinite;
   cursor: pointer;
@@ -231,7 +223,6 @@
   100% { background-position: 0% 50%; }
 }
 
-/* Subtle moving sheen overlay */
 .button::before {
   content: '';
   position: absolute;
@@ -306,7 +297,6 @@
 }
 .footer-links { display: flex; gap: 1rem; }
 
-/* Dashboard panels */
 .panel {
   background: rgba(255, 255, 255, 0.035);
   border: 1px solid rgba(255, 255, 255, 0.08);
@@ -320,7 +310,6 @@
   font-size: 1.25rem;
 }
 
-/* Sticky top navigation tabs for Analyzer */
 .sticky-tabs {
   position: sticky;
   top: 0;

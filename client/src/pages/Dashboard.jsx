@@ -6,7 +6,7 @@ import '../styles/auth.css';
 
 export default function Dashboard() {
   const navigate = useNavigate();
-  const [userEmail, setUserEmail] = useState('');
+  
   const [userId, setUserId] = useState('');
   const [profile, setProfile] = useState({});
   const [major, setMajor] = useState('');
@@ -14,10 +14,8 @@ export default function Dashboard() {
   const [saveResult, setSaveResult] = useState(null);
   const [isUploading, setIsUploading] = useState(false);
   const [blurInfo, setBlurInfo] = useState(false);
-  const [suggestions, setSuggestions] = useState([]);
-  const [courseInput, setCourseInput] = useState('');
-  const [currentCourses, setCurrentCourses] = useState([]);
-  const [savingCourses, setSavingCourses] = useState(false);
+  // suggestions and course input are not used on Dashboard
+  // current courses are now managed in the dedicated page
   const api = process.env.REACT_APP_API_URL;
 
   useEffect(() => {
@@ -26,9 +24,9 @@ export default function Dashboard() {
         navigate('/login');
       } else {
         const u = data.session.user;
-        setUserEmail(u.email || '');
+        
         setUserId(u.id);
-        // Fetch profile
+        
         axios.get(`${api}/profile/${u.id}`)
           .then(({ data: res }) => {
             if (res.profile) {
@@ -37,10 +35,7 @@ export default function Dashboard() {
             }
           })
           .catch(err => console.error('Failed to load profile', err));
-        // Fetch course suggestions
-        axios.get(`${api}/courses/suggestions/${u.id}`)
-          .then(({ data }) => setSuggestions(Array.isArray(data?.suggestions) ? data.suggestions : []))
-          .catch(err => console.error('Failed to load suggestions', err));
+        
       }
     });
   }, [navigate, api]);
@@ -81,12 +76,7 @@ export default function Dashboard() {
       if (data.profile) {
         setProfile(prev => ({ ...prev, ...data.profile }));
       }
-      // Refresh suggestions in case analyzer wants updated codes later
-      if (userId) {
-        axios.get(`${api}/courses/suggestions/${userId}`)
-          .then(({ data }) => setSuggestions(Array.isArray(data?.suggestions) ? data.suggestions : []))
-          .catch(() => {});
-      }
+      
     } catch (err) {
       console.error('Save failed', err?.response?.data || err?.message);
       setSaveResult({ error: 'Failed to save to DB', details: err?.response?.data || err?.message });
@@ -95,43 +85,13 @@ export default function Dashboard() {
     }
   };
 
-  const addCourse = () => {
-    const code = String(courseInput || '').toUpperCase().trim();
-    if (!code) return;
-    if (currentCourses.includes(code)) return;
-    if (currentCourses.length >= 5) return;
-    // Optional: only allow from suggestions list if present
-    if (suggestions.length && !suggestions.includes(code)) return;
-    setCurrentCourses((prev) => [...prev, code]);
-    setCourseInput('');
-  };
-
-  const removeCourse = (code) => {
-    setCurrentCourses((prev) => prev.filter((c) => c !== code));
-  };
-
-  const saveCurrentCourses = async () => {
-    if (!userId || currentCourses.length === 0) return;
-    try {
-      setSavingCourses(true);
-      const { data } = await axios.post(`${api}/marks/current-courses`, {
-        userId,
-        courseCodes: currentCourses,
-      });
-      // Simple success cue
-      setSaveResult({ success: true, inserted_count: data?.inserted_count || currentCourses.length });
-    } catch (err) {
-      setSaveResult({ error: 'Failed to save current courses', details: err?.response?.data || err?.message });
-    } finally {
-      setSavingCourses(false);
-    }
-  };
+  
 
   return (
     <div className="auth-wrapper">
       <div className="auth-card" style={{ paddingTop: '1rem', width: '100%', maxWidth: '1000px' }}>
         
-        {/* Header: Profile Card on Left (Top), Sign Out on Right */}
+        {}
         <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'flex-start', marginBottom: '1.5rem', borderBottom: '1px solid #333', paddingBottom: '1rem' }}>
            <div style={{ display: 'flex', flexDirection: 'column', gap: '0.4rem', textAlign: 'left' }}>
               
@@ -198,11 +158,11 @@ export default function Dashboard() {
            <button className="button" style={{ padding: '0.4rem 0.8rem', fontSize: '0.85rem' }} onClick={handleSignOut}>Sign Out</button>
         </div>
 
-        {/* Main content grid: Left tabs (Upload, Analyzer, Marks Book) and Right tab (Current Courses) */}
+        {}
         <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: '1.25rem', alignItems: 'start' }}>
-          {/* Left Column */}
+          {}
           <div style={{ display: 'grid', gap: '1.25rem' }}>
-            {/* Section: Upload Gradesheet */}
+            {}
             <section className="panel" style={{ textAlign: 'left' }}>
             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'baseline' }}>
               <h3 className="panel-title">Upload Gradesheet</h3>
@@ -233,7 +193,7 @@ export default function Dashboard() {
             )}
             </section>
 
-            {/* Section: Analyzer */}
+            {}
             <section className="panel" style={{ textAlign: 'left' }}>
             <h3 className="panel-title">Gradesheet Analyzer</h3>
             <p className="text-muted">View parsed results, retakes, and KPIs.</p>
@@ -242,9 +202,9 @@ export default function Dashboard() {
             </div>
             </section>
 
-            {/* Visual Analytics lives inside Analyzer as a tab now */}
+            {}
 
-            {/* Section: Marks Book */}
+            {}
             <section className="panel" style={{ textAlign: 'left' }}>
             <h3 className="panel-title">Marks Book</h3>
             <p className="text-muted">Plan ongoing assessments, targets, and track progress.</p>
@@ -254,16 +214,16 @@ export default function Dashboard() {
             </section>
           </div>
 
-          {/* Right Column */}
+          {}
           <div style={{ display: 'grid', gap: '1.25rem' }}>
-            {/* Section: Current Semester Courses Tab */}
+            {}
             <section className="panel" style={{ textAlign: 'left' }}>
             <h3 className="panel-title">Courses in Current Semester</h3>
             <p className="text-muted">These will be added to Marks Book for your current term and used to simulate grades in the analyzer.</p>
             <div style={{ marginTop: '0.75rem' }}>
               <Link className="button glow" to="/current-courses">PRESS TO ADD THE COURSES</Link>
             </div>
-            {/* Preview saved courses (shown only when present) */}
+            {}
             <div style={{ marginTop: '0.75rem' }}>
               {profile && userId && (
                 <PreviewCurrentCourses userId={userId} api={api} />
@@ -291,7 +251,7 @@ function PreviewCurrentCourses({ userId, api }) {
       const { data } = await axios.get(`${api}/marks/current-courses/${userId}`);
       setList(Array.isArray(data?.courses) ? data.courses : []);
     } catch (e) {
-      // silently fail; users can retry or open the full tab
+      
     }
   };
   return (
