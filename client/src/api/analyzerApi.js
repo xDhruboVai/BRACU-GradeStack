@@ -40,7 +40,12 @@ export async function fetchCseGraph() {
   
   const nodes = Array.isArray(data?.nodes) ? data.nodes : [];
   const edges = Array.isArray(data?.edges) ? data.edges : [];
+  const softEdges = Array.isArray(data?.softEdges) ? data.softEdges : [];
   const prereqs = data?.prereqs && typeof data.prereqs === 'object' ? data.prereqs : {};
+  const softPrereqs = data?.softPrereqs && typeof data.softPrereqs === 'object' ? data.softPrereqs : {};
+  const coreCSE = Array.isArray(data?.coreCSE) ? data.coreCSE : [];
+  const coreCS = Array.isArray(data?.coreCS) ? data.coreCS : [];
+  const compCod = Array.isArray(data?.compCod) ? data.compCod : [];
   const titles = data?.titles && typeof data.titles === 'object' ? data.titles : {};
-  return { nodes, edges, prereqs, titles };
+  return { nodes, edges, softEdges, prereqs, softPrereqs, coreCSE, coreCS, compCod, titles };
 }

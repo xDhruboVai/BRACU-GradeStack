@@ -1,4 +1,4 @@
-GradeStack — Quick Setup
+GradeStack Quick Setup
 
 npm install
 

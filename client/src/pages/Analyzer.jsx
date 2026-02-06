@@ -491,6 +491,7 @@ export default function Analyzer() {
           <UnlockedCoursesGraph
             doneCodes={doneCodes}
             currentCodes={(matrix || []).map((c) => String(c.course_code || '').toUpperCase()).filter(Boolean)}
+            major={profileMajor}
           />
         )}
       </div>

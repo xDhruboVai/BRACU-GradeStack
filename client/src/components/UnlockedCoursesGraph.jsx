@@ -13,23 +13,30 @@ const BLUE = '#60a5fa';
 const YELLOW = '#facc15';
 const GRAY = '#6b7280';
 
-export default function UnlockedCoursesGraph({ doneCodes = [], currentCodes = [] }) {
+export default function UnlockedCoursesGraph({ doneCodes = [], currentCodes = [], major = 'CSE' }) {
   const containerRef = useRef(null);
   const cyRef = useRef(null);
-  const [graph, setGraph] = useState({ nodes: [], edges: [], prereqs: {}, titles: {} });
+  const [graph, setGraph] = useState({ nodes: [], edges: [], softEdges: [], prereqs: {}, softPrereqs: {}, coreCSE: [], coreCS: [], compCod: [], titles: {} });
   const [unlocked, setUnlocked] = useState(() => new Set());
   const [unlockPreview, setUnlockPreview] = useState({}); 
   const [includeCurrent, setIncludeCurrent] = useState(true);
+  const [ignoreSoft, setIgnoreSoft] = useState(false);
 
   const doneSet = useMemo(() => new Set((doneCodes || []).map((c) => String(c).toUpperCase())), [doneCodes]);
   const currentSet = useMemo(() => new Set((currentCodes || []).map((c) => String(c).toUpperCase())), [currentCodes]);
 
   const computeUnlocked = (baseSet) => {
     const acc = new Set();
-    for (const c of graph.nodes) {
+    const visible = new Set([
+      ...(String(major).toUpperCase() === 'CS' ? graph.coreCS : graph.coreCSE),
+      ...graph.compCod,
+    ].map((x) => String(x).toUpperCase()));
+    for (const c of Array.from(visible)) {
       const up = String(c).toUpperCase();
       if (baseSet.has(up)) continue;
-      const reqs = graph.prereqs[up] || [];
+      const hard = graph.prereqs[up] || [];
+      const soft = ignoreSoft ? [] : (graph.softPrereqs[up] || []);
+      const reqs = [...hard, ...soft];
       let ok = true;
       for (const r of reqs) {
         if (!baseSet.has(String(r).toUpperCase())) { ok = false; break; }
@@ -75,9 +82,14 @@ export default function UnlockedCoursesGraph({ doneCodes = [], currentCodes = []
     fetchCseGraph().then((g) => {
       if (!mounted) return;
       setGraph(g);
+      const visible = new Set([
+        ...(String(major).toUpperCase() === 'CS' ? g.coreCS : g.coreCSE),
+        ...g.compCod,
+      ].map((x) => String(x).toUpperCase()));
       const elements = [
-        ...g.nodes.map((id) => ({ data: { id } })),
-        ...g.edges.map((e) => ({ data: { id: `${e.from}->${e.to}`, source: e.from, target: e.to } })),
+        ...Array.from(visible).map((id) => ({ data: { id } })),
+        ...g.edges.filter((e) => visible.has(String(e.from).toUpperCase()) && visible.has(String(e.to).toUpperCase()))
+                 .map((e) => ({ data: { id: `${e.from}->${e.to}`, source: e.from, target: e.to } })),
       ];
       const cy = cytoscape({
         container: containerRef.current,
@@ -107,7 +119,7 @@ export default function UnlockedCoursesGraph({ doneCodes = [], currentCodes = []
     });
     return () => { mounted = false; if (cyRef.current) { cyRef.current.destroy(); cyRef.current = null; } };
     
-  }, []);
+  }, [major]);
 
   useEffect(() => {
     const cy = cyRef.current; if (!cy || graph.nodes.length === 0) return;
@@ -119,7 +131,7 @@ export default function UnlockedCoursesGraph({ doneCodes = [], currentCodes = []
     setUnlocked(unlockedSet);
     applyStyles(cy, baseSet, unlockedSet);
     computeUnlockPreview(baseSet, unlockedSet);
-  }, [doneSet, currentSet, includeCurrent, graph.nodes, graph.prereqs]);
+  }, [doneSet, currentSet, includeCurrent, ignoreSoft, major, graph.coreCSE, graph.coreCS, graph.compCod, graph.prereqs, graph.softPrereqs]);
 
   useEffect(() => {
     const cy = cyRef.current; if (!cy) return;
@@ -167,7 +179,7 @@ export default function UnlockedCoursesGraph({ doneCodes = [], currentCodes = []
 
   return (
     <div className="panel" style={{ display: 'grid', gap: '0.75rem' }}>
-      <h3 className="panel-title">Unlocked Courses (CSE Core)</h3>
+      <h3 className="panel-title">Unlocked Courses ({String(major).toUpperCase()} Core)</h3>
       <div style={{ display: 'grid', gridTemplateColumns: 'minmax(320px, 380px) 1fr', gap: '0.75rem', alignItems: 'start' }}>
         
         <div className="panel" style={{ background: '#121212', border: '1px solid #1f1f1f', borderRadius: 12 }}>
@@ -199,6 +211,10 @@ export default function UnlockedCoursesGraph({ doneCodes = [], currentCodes = []
             <label style={{ display: 'inline-flex', alignItems: 'center', gap: 8, marginLeft: 12 }}>
               <input type="checkbox" checked={includeCurrent} onChange={(e) => setIncludeCurrent(e.target.checked)} />
               <span className="text-muted">Include current-term courses</span>
+            </label>
+            <label style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+              <input type="checkbox" checked={ignoreSoft} onChange={(e) => setIgnoreSoft(e.target.checked)} />
+              <span className="text-muted">Ignore soft prerequisites</span>
             </label>
             <button className="button" type="button" onClick={handleFit} style={{ marginLeft: 'auto' }}>Fit</button>
           </div>
