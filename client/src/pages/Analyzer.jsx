@@ -145,7 +145,8 @@ export default function Analyzer() {
     if (!code) return fallback ?? 3;
     const up = String(code).toUpperCase();
     if (up === 'CSE400') return 4; 
-    return typeof fallback === 'number' ? fallback : 3;
+    const parsed = Number(fallback);
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : 3;
   };
 
   const computeLiveMetrics = () => {
@@ -171,6 +172,16 @@ export default function Analyzer() {
       credits += credit;
     }
 
+    // Include current-term course credits in the live credit count.
+    // If a current-term course is already simulated, it is already counted above.
+    const simulatedCodes = new Set(simCourses.map((c) => String(c.code || '').toUpperCase()));
+    const currentTermOnlyCredits = matrix.reduce((sum, c) => {
+      const code = String(c.course_code || '').toUpperCase();
+      if (!code || simulatedCodes.has(code)) return sum;
+      return sum + creditForCode(code, c.credit);
+    }, 0);
+    const liveCredits = credits + currentTermOnlyCredits;
+
     const cgpa = credits > 0 ? Number((points / credits).toFixed(2)) : null;
     const earned = baseline.credits;
     const termsCount = semesters.length;
@@ -179,7 +190,7 @@ export default function Analyzer() {
     
     const proj = maxProjection({ major: null }, credits, points);
 
-    return { cgpa, credits, earned, termsCount, retakesCount, remaining: proj.remaining, maxCgpa: proj.maxCgpa };
+    return { cgpa, credits: liveCredits, earned, termsCount, retakesCount, remaining: proj.remaining, maxCgpa: proj.maxCgpa };
   };
 
   

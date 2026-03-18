@@ -14,7 +14,7 @@ export default function Signup() {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
   const [loading, setLoading] = useState(false);
-  const api = process.env.REACT_APP_API_URL || 'http://localhost:5000/api';
+  const api = process.env.REACT_APP_API_URL || 'http://localhost:4000/api';
 
   const strength = useMemo(() => {
     let score = 0;
