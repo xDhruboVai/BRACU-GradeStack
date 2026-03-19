@@ -6,6 +6,17 @@ import '../styles/auth.css';
 
 export default function Dashboard() {
   const navigate = useNavigate();
+  const rotateMs = Number(process.env.REACT_APP_HERO_ROTATE_MS || 6000);
+  const fadeMs = Number(process.env.REACT_APP_HERO_FADE_MS || 900);
+
+  const footerQuotes = [
+    'Academic success is forged in fire and coffee.',
+    'Plan with data, not panic.',
+    'Small consistency beats last-minute heroics.',
+    'One smart semester plan can change your whole CGPA.',
+    'Discipline now, freedom later.',
+    'Progress compounds when you track it.',
+  ];
   
   const [userId, setUserId] = useState('');
   const [profile, setProfile] = useState({});
@@ -14,9 +25,25 @@ export default function Dashboard() {
   const [saveResult, setSaveResult] = useState(null);
   const [isUploading, setIsUploading] = useState(false);
   const [blurInfo, setBlurInfo] = useState(false);
+  const [msgIndex, setMsgIndex] = useState(() => Math.floor(Math.random() * footerQuotes.length));
+  const [prevIndex, setPrevIndex] = useState(msgIndex);
+  const [showPrev, setShowPrev] = useState(false);
   // suggestions and course input are not used on Dashboard
   // current courses are now managed in the dedicated page
   const api = process.env.REACT_APP_API_URL;
+
+  useEffect(() => {
+    const id = setInterval(() => {
+      setMsgIndex((i) => {
+        setPrevIndex(i);
+        setShowPrev(true);
+        const next = (i + 1) % footerQuotes.length;
+        setTimeout(() => setShowPrev(false), fadeMs);
+        return next;
+      });
+    }, rotateMs);
+    return () => clearInterval(id);
+  }, [rotateMs, fadeMs, footerQuotes.length]);
 
   useEffect(() => {
     supabase.auth.getSession().then(({ data }) => {
@@ -39,6 +66,9 @@ export default function Dashboard() {
       }
     });
   }, [navigate, api]);
+
+  const currentQuote = footerQuotes[msgIndex % footerQuotes.length];
+  const previousQuote = footerQuotes[prevIndex % footerQuotes.length];
 
   const handleSignOut = async () => {
     await supabase.auth.signOut();
@@ -230,9 +260,43 @@ export default function Dashboard() {
               )}
             </div>
             </section>
+
+            <section className="panel" style={{ textAlign: 'left' }}>
+            <h3 className="panel-title">Routiner Khichuri</h3>
+            <p className="text-muted">Wanna create routines with live seat status?</p>
+            <div style={{ marginTop: '0.75rem' }}>
+              <a className="button glow" href="https://routiner-khichuri.vercel.app/" target="_blank" rel="noreferrer">Open Routine Generator</a>
+            </div>
+            </section>
           </div>
         </div>
       </div>
+
+      <footer className="auth-footer auth-footer-rich" style={{ maxWidth: '1000px' }}>
+        <div className="footer-rich-left">
+          <div className="footer-rich-author">Built by Dihan Islam Dhrubo</div>
+          <div className="footer-rich-links">
+            <a className="footer-rich-link" href="https://github.com/xDhruboVai/BRACU-Gradesheet-Analyzer-CSE-" target="_blank" rel="noreferrer">GitHub Repo</a>
+            <a className="footer-rich-link" href="https://www.linkedin.com/in/dihan-islam-dhrubo-79a904249/" target="_blank" rel="noreferrer">LinkedIn</a>
+            <a className="footer-rich-link" href="https://www.facebook.com/dihanislam.dhrubo.5/" target="_blank" rel="noreferrer">Facebook</a>
+          </div>
+          <div className="footer-rich-links">
+            <a className="footer-rich-link" href="https://forms.gle/U4yiB45m8vSDAwU3A" target="_blank" rel="noreferrer">Suggest / Report</a>
+          </div>
+        </div>
+        <div className="footer-rich-right" aria-live="polite">
+          <div className="footer-quote-stack" style={{ '--heroFadeMs': `${fadeMs}ms` }}>
+            {showPrev && (
+              <div className="footer-quote-layer hero-out">
+                {previousQuote}
+              </div>
+            )}
+            <div key={`dashboard-footer-quote-${msgIndex}`} className="footer-quote-layer hero-in">
+              {currentQuote}
+            </div>
+          </div>
+        </div>
+      </footer>
     </div>
   );
 }

@@ -22,6 +22,15 @@ export default function AuthLayout({ title, subtitle, children, noHero = false }
     { title: 'Skill tree: Scholar', copy: 'Unlock better habits, stack credits, and level up your GPA.' }
   ];
 
+  const footerQuotes = [
+    'Academic success is forged in fire and coffee.',
+    'Plan with data, not panic.',
+    'Small consistency beats last-minute heroics.',
+    'One smart semester plan can change your whole CGPA.',
+    'Discipline now, freedom later.',
+    'Progress compounds when you track it.',
+  ];
+
   const [msgIndex, setMsgIndex] = useState(() => Math.floor(Math.random() * messages.length));
   const [prevIndex, setPrevIndex] = useState(msgIndex);
   const [showPrev, setShowPrev] = useState(false);
@@ -42,6 +51,8 @@ export default function AuthLayout({ title, subtitle, children, noHero = false }
 
   const current = messages[msgIndex];
   const previous = messages[prevIndex];
+  const currentQuote = footerQuotes[msgIndex % footerQuotes.length];
+  const previousQuote = footerQuotes[prevIndex % footerQuotes.length];
   const navigate = useNavigate();
 
   const onBrandClick = async () => {
@@ -87,7 +98,6 @@ export default function AuthLayout({ title, subtitle, children, noHero = false }
 
         <div className="auth-card glass" style={{ width: noHero ? '100%' : undefined }}>
           <div className="card-header">
-            <LogoMark size={44} />
             <div>
               <h1 className="auth-title">{title}</h1>
               {subtitle && <p className="auth-subtitle">{subtitle}</p>}
@@ -98,11 +108,29 @@ export default function AuthLayout({ title, subtitle, children, noHero = false }
         </div>
       </div>
 
-      <footer className="auth-footer">
-        <span className="text-muted">© {new Date().getFullYear()} GradeStack</span>
-        <div className="footer-links">
-          <button type="button" className="link" style={{ background: 'transparent', border: 'none', padding: 0 }}>Privacy</button>
-          <button type="button" className="link" style={{ background: 'transparent', border: 'none', padding: 0 }}>Terms</button>
+      <footer className="auth-footer auth-footer-rich">
+        <div className="footer-rich-left">
+          <div className="footer-rich-author">Built by Dihan Islam Dhrubo</div>
+          <div className="footer-rich-links">
+            <a className="footer-rich-link" href="https://github.com/xDhruboVai/BRACU-Gradesheet-Analyzer-CSE-" target="_blank" rel="noreferrer">GitHub Repo</a>
+            <a className="footer-rich-link" href="https://www.linkedin.com/in/dihan-islam-dhrubo-79a904249/" target="_blank" rel="noreferrer">LinkedIn</a>
+            <a className="footer-rich-link" href="https://www.facebook.com/dihanislam.dhrubo.5/" target="_blank" rel="noreferrer">Facebook</a>
+          </div>
+          <div className="footer-rich-links">
+            <a className="footer-rich-link" href="https://forms.gle/U4yiB45m8vSDAwU3A" target="_blank" rel="noreferrer">Suggest / Report</a>
+          </div>
+        </div>
+        <div className="footer-rich-right" aria-live="polite">
+          <div className="footer-quote-stack" style={{ '--heroFadeMs': `${fadeMs}ms` }}>
+            {showPrev && (
+              <div className="footer-quote-layer hero-out">
+                {previousQuote}
+              </div>
+            )}
+            <div key={`footer-quote-${msgIndex}`} className="footer-quote-layer hero-in">
+              {currentQuote}
+            </div>
+          </div>
         </div>
       </footer>
     </div>

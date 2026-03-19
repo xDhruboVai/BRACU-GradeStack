@@ -1,4 +1,4 @@
-GradeStack Quick Setup
+GradeStack
 
 npm install
 
@@ -10,3 +10,5 @@ npm start
 Server
 cd server
 npm install
+
+env to dibo na :p

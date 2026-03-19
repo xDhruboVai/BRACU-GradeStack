@@ -289,13 +289,87 @@
 .auth-footer {
   width: 100%;
   max-width: none;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
   margin-top: 1.75rem;
   z-index: 1;
 }
-.footer-links { display: flex; gap: 1rem; }
+
+.auth-footer-rich {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1.5rem;
+  border-radius: 22px;
+  padding: 1.15rem 1.35rem;
+  border: 1px solid rgba(148, 163, 184, 0.45);
+  background: linear-gradient(135deg, rgba(15, 23, 42, 0.86), rgba(30, 64, 175, 0.64), rgba(56, 189, 248, 0.58));
+  box-shadow: 0 14px 38px rgba(0, 0, 0, 0.36), inset 0 1px 0 rgba(255, 255, 255, 0.12);
+}
+
+.footer-rich-left {
+  display: grid;
+  gap: 0.55rem;
+}
+
+.footer-rich-author {
+  font-size: 1.05rem;
+  font-weight: 800;
+  color: #f8fafc;
+}
+
+.footer-rich-links {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.9rem;
+}
+
+.footer-rich-link {
+  color: #dbeafe;
+  text-decoration: none;
+  font-weight: 600;
+  font-size: 0.95rem;
+  transition: color 140ms ease, transform 140ms ease;
+}
+
+.footer-rich-link:hover {
+  color: #ffffff;
+  transform: translateY(-1px);
+}
+
+.footer-rich-right {
+  margin-left: auto;
+  min-width: 260px;
+  width: min(52%, 760px);
+  text-align: right;
+}
+
+.footer-quote-stack {
+  position: relative;
+  min-height: 42px;
+}
+
+.footer-quote-layer {
+  position: absolute;
+  inset: 0;
+  font-size: clamp(1rem, 1.5vw, 1.2rem);
+  line-height: 1.35;
+  font-weight: 800;
+  color: #f8fafc;
+  text-shadow: 0 2px 14px rgba(30, 64, 175, 0.35);
+}
+
+@media (max-width: 900px) {
+  .auth-footer-rich {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 1rem;
+  }
+
+  .footer-rich-right {
+    margin-left: 0;
+    width: 100%;
+    text-align: left;
+  }
+}
 
 .panel {
   background: rgba(255, 255, 255, 0.035);
