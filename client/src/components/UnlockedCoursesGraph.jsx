@@ -178,24 +178,44 @@ export default function UnlockedCoursesGraph({ doneCodes = [], currentCodes = []
   const handleFit = () => { const cy = cyRef.current; if (cy) cy.fit(); };
 
   return (
-    <div className="panel" style={{ display: 'grid', gap: '0.75rem' }}>
-      <h3 className="panel-title">Unlocked Courses ({String(major).toUpperCase()} Core)</h3>
+    <div
+      className="panel"
+      style={{
+        display: 'grid',
+        gap: '0.75rem',
+        background: 'linear-gradient(135deg, rgba(56,189,248,0.12), rgba(16,185,129,0.06), rgba(59,130,246,0.12))',
+        border: '1px solid #334155',
+      }}
+    >
+      <h3 className="panel-title" style={{ color: '#dbeafe' }}>Unlocked Courses ({String(major).toUpperCase()} Core)</h3>
       <div style={{ display: 'grid', gridTemplateColumns: 'minmax(320px, 380px) 1fr', gap: '0.75rem', alignItems: 'start' }}>
         
-        <div className="panel" style={{ background: '#121212', border: '1px solid #1f1f1f', borderRadius: 12 }}>
+        <div className="panel" style={{ background: 'linear-gradient(180deg, rgba(2,6,23,0.95), rgba(15,23,42,0.92))', border: '1px solid #475569', borderRadius: 12 }}>
           <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
-            <strong>Unlocked now:</strong>
+            <strong style={{ color: '#e2e8f0' }}>Unlocked now:</strong>
             {Object.keys(unlockPreview).length === 0 && <span className="text-muted">None</span>}
-            {Object.keys(unlockPreview).sort().map((c) => (
-              <span key={c} style={{ background: '#1f1f1f', border: '1px solid #333', borderRadius: 14, padding: '6px 10px' }}>{c}</span>
+            {Object.keys(unlockPreview).sort().map((c, idx) => (
+              <span
+                key={c}
+                style={{
+                  background: idx % 2 === 0 ? 'rgba(59,130,246,0.2)' : 'rgba(16,185,129,0.2)',
+                  border: idx % 2 === 0 ? '1px solid #60a5fa' : '1px solid #34d399',
+                  color: '#e2e8f0',
+                  borderRadius: 14,
+                  padding: '6px 10px',
+                  boxShadow: '0 0 14px rgba(59,130,246,0.15)',
+                }}
+              >
+                {c}
+              </span>
             ))}
           </div>
           <div style={{ marginTop: '0.5rem', display: 'grid', gap: '0.5rem' }}>
             {Object.entries(unlockPreview).sort((a,b)=> a[0].localeCompare(b[0])).map(([c, list]) => (
               <div key={c} style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
-                <span className="text-muted">Taking {c} unlocks:</span>
+                <span className="text-muted" style={{ color: '#cbd5e1' }}>Taking {c} unlocks:</span>
                 {list.length === 0 ? <span className="text-muted">—</span> : list.map((n) => (
-                  <span key={n} style={{ background: '#1f1f1f', border: '1px solid #333', borderRadius: 14, padding: '6px 10px' }}>{n}</span>
+                  <span key={n} style={{ background: 'rgba(245,158,11,0.18)', border: '1px solid #f59e0b', color: '#fef3c7', borderRadius: 14, padding: '6px 10px' }}>{n}</span>
                 ))}
               </div>
             ))}

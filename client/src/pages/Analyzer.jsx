@@ -40,6 +40,8 @@ export default function Analyzer() {
   const [courseGpaInput, setCourseGpaInput] = useState('4.0');
   const [retakeCodeInput, setRetakeCodeInput] = useState('');
   const [retakeGpaInput, setRetakeGpaInput] = useState('4.0');
+  const [includeCurrentSemesterCourses, setIncludeCurrentSemesterCourses] = useState(false);
+  const [includeSimulatedCourses, setIncludeSimulatedCourses] = useState(false);
 
   
   const loadSession = (uid) => {
@@ -121,6 +123,26 @@ export default function Analyzer() {
       .filter((a) => !deny.has(String(a.grade || '').toUpperCase()))
       .map((a) => String(a.course_code || '').toUpperCase());
   }, [latestAttempts]);
+  const codesForCourseClassification = useMemo(() => {
+    const merged = new Set(doneCodes);
+    if (includeCurrentSemesterCourses) {
+      for (const c of (matrix || [])) {
+        const code = String(c.course_code || '').toUpperCase().trim();
+        if (code) merged.add(code);
+      }
+    }
+    if (includeSimulatedCourses) {
+      for (const c of (simCourses || [])) {
+        const code = String(c.code || '').toUpperCase().trim();
+        if (code) merged.add(code);
+      }
+      for (const c of (simRetakes || [])) {
+        const code = String(c.code || '').toUpperCase().trim();
+        if (code) merged.add(code);
+      }
+    }
+    return Array.from(merged).sort();
+  }, [doneCodes, includeCurrentSemesterCourses, includeSimulatedCourses, matrix, simCourses, simRetakes]);
   const retakeCandidates = useMemo(() => {
     return latestAttempts
       .filter((a) => typeof a.gpa === 'number' && a.gpa < 4.0)
@@ -322,8 +344,8 @@ export default function Analyzer() {
           {}
           <TabButton id="unlocked" label="Unlocked" />
           <TabButton id="codPlanner" label="COD Planner" />
-          <TabButton id="completedBreakdown" label="Completed Breakdown" />
           <TabButton id="visuals" label="Visual Analytics" />
+          <TabButton id="completedBreakdown" label="Completed Breakdown" />
           <div style={{ marginLeft: 'auto' }}>
             <button className="button" type="button" onClick={() => navigate('/dashboard')}>
               ← Back to Dashboard
@@ -457,6 +479,48 @@ export default function Analyzer() {
           </div>
         )}
 
+        {!loading && !error && activeTab === 'unlocked' && (
+          <UnlockedCoursesGraph
+            doneCodes={doneCodes}
+            currentCodes={(matrix || []).map((c) => String(c.course_code || '').toUpperCase()).filter(Boolean)}
+            major={profileMajor}
+          />
+        )}
+
+        {!loading && !error && activeTab === 'codPlanner' && (
+          <div style={{ display: 'grid', gap: '0.8rem' }}>
+            <div className="panel" style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
+              <strong style={{ color: '#93c5fd' }}>Course Inclusion</strong>
+              <label style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                <input
+                  type="checkbox"
+                  checked={includeCurrentSemesterCourses}
+                  onChange={(e) => setIncludeCurrentSemesterCourses(e.target.checked)}
+                />
+                <span className="text-muted">Include current semester courses</span>
+              </label>
+              <label style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                <input
+                  type="checkbox"
+                  checked={includeSimulatedCourses}
+                  onChange={(e) => setIncludeSimulatedCourses(e.target.checked)}
+                />
+                <span className="text-muted">Include simulated courses</span>
+              </label>
+            </div>
+            <CODPlannerPanel
+              completedCodes={doneCodes}
+              currentCodes={(matrix || []).map((c) => String(c.course_code || '').toUpperCase()).filter(Boolean)}
+              simulatedCodes={[
+                ...(simCourses || []).map((c) => String(c.code || '').toUpperCase()).filter(Boolean),
+                ...(simRetakes || []).map((c) => String(c.code || '').toUpperCase()).filter(Boolean),
+              ]}
+              includeCurrentSemesterCourses={includeCurrentSemesterCourses}
+              includeSimulatedCourses={includeSimulatedCourses}
+            />
+          </div>
+        )}
+
         {!loading && !error && activeTab === 'visuals' && (
           <div style={{ display: 'grid', gap: '1rem' }}>
             <section className="panel" style={{ textAlign: 'left' }}>
@@ -502,20 +566,29 @@ export default function Analyzer() {
           </div>
         )}
 
-        {!loading && !error && activeTab === 'unlocked' && (
-          <UnlockedCoursesGraph
-            doneCodes={doneCodes}
-            currentCodes={(matrix || []).map((c) => String(c.course_code || '').toUpperCase()).filter(Boolean)}
-            major={profileMajor}
-          />
-        )}
-
-        {!loading && !error && activeTab === 'codPlanner' && (
-          <CODPlannerPanel completedCodes={doneCodes} />
-        )}
-
         {!loading && !error && activeTab === 'completedBreakdown' && (
-          <CompletedCourseBreakdown completedCodes={doneCodes} major={profileMajor} />
+          <div style={{ display: 'grid', gap: '0.8rem' }}>
+            <div className="panel" style={{ display: 'flex', gap: '1rem', alignItems: 'center', flexWrap: 'wrap' }}>
+              <strong style={{ color: '#93c5fd' }}>Course Inclusion</strong>
+              <label style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                <input
+                  type="checkbox"
+                  checked={includeCurrentSemesterCourses}
+                  onChange={(e) => setIncludeCurrentSemesterCourses(e.target.checked)}
+                />
+                <span className="text-muted">Include current semester courses</span>
+              </label>
+              <label style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                <input
+                  type="checkbox"
+                  checked={includeSimulatedCourses}
+                  onChange={(e) => setIncludeSimulatedCourses(e.target.checked)}
+                />
+                <span className="text-muted">Include simulated courses</span>
+              </label>
+            </div>
+            <CompletedCourseBreakdown completedCodes={codesForCourseClassification} major={profileMajor} />
+          </div>
         )}
       </div>
     </AuthLayout>
