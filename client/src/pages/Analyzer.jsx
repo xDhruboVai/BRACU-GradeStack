@@ -6,6 +6,8 @@ import { fetchAttempts, fetchSemesters, fetchSuggestions, fetchCurrentCourses, f
 import SmoothLineChart from '../components/SmoothLineChart';
 import CreditsProgressEChart from '../components/CreditsProgressEChart';
 import UnlockedCoursesGraph from '../components/UnlockedCoursesGraph';
+import CODPlannerPanel from '../components/CODPlannerPanel';
+import CompletedCourseBreakdown from '../components/CompletedCourseBreakdown';
 import { totalCreditsRequired, maxProjection } from '../utils/cgpaMath';
 
 const SESSION_KEY_PREFIX = 'gs.virtualSemester.v1:';
@@ -319,6 +321,8 @@ export default function Analyzer() {
           <TabButton id="courseRetake" label="Courses & Retake" />
           {}
           <TabButton id="unlocked" label="Unlocked" />
+          <TabButton id="codPlanner" label="COD Planner" />
+          <TabButton id="completedBreakdown" label="Completed Breakdown" />
           <TabButton id="visuals" label="Visual Analytics" />
           <div style={{ marginLeft: 'auto' }}>
             <button className="button" type="button" onClick={() => navigate('/dashboard')}>
@@ -504,6 +508,14 @@ export default function Analyzer() {
             currentCodes={(matrix || []).map((c) => String(c.course_code || '').toUpperCase()).filter(Boolean)}
             major={profileMajor}
           />
+        )}
+
+        {!loading && !error && activeTab === 'codPlanner' && (
+          <CODPlannerPanel completedCodes={doneCodes} />
+        )}
+
+        {!loading && !error && activeTab === 'completedBreakdown' && (
+          <CompletedCourseBreakdown completedCodes={doneCodes} major={profileMajor} />
         )}
       </div>
     </AuthLayout>
