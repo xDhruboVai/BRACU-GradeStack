@@ -107,14 +107,15 @@ export default function Analyzer() {
         setLoading(false);
       }
     });
-    
+  }, []);
+
+  useEffect(() => {
     const handleUnload = () => {
       if (userId) sessionStorage.removeItem(SESSION_KEY_PREFIX + userId);
     };
     window.addEventListener('beforeunload', handleUnload);
     return () => window.removeEventListener('beforeunload', handleUnload);
-    
-  }, []);
+  }, [userId]);
 
   const latestAttempts = useMemo(() => attempts.filter((a) => a.is_latest), [attempts]);
   const doneCodes = useMemo(() => {

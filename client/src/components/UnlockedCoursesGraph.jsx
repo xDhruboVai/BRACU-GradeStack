@@ -1,4 +1,4 @@
-import React, { useEffect, useMemo, useRef, useState } from 'react';
+import React, { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import cytoscape from 'cytoscape';
 import cytoscapeDagre from 'cytoscape-dagre';
 import 'tippy.js/dist/tippy.css';
@@ -17,7 +17,6 @@ export default function UnlockedCoursesGraph({ doneCodes = [], currentCodes = []
   const containerRef = useRef(null);
   const cyRef = useRef(null);
   const [graph, setGraph] = useState({ nodes: [], edges: [], softEdges: [], prereqs: {}, softPrereqs: {}, coreCSE: [], coreCS: [], compCod: [], titles: {} });
-  const [unlocked, setUnlocked] = useState(() => new Set());
   const [unlockPreview, setUnlockPreview] = useState({}); 
   const [includeCurrent, setIncludeCurrent] = useState(true);
   const [ignoreSoft, setIgnoreSoft] = useState(false);
@@ -31,7 +30,7 @@ export default function UnlockedCoursesGraph({ doneCodes = [], currentCodes = []
     return Array.from(new Set([...(base || []), ...(graph.compCod || [])].map((x) => String(x).toUpperCase()))).sort();
   }, [major, graph.coreCS, graph.coreCSE, graph.compCod]);
 
-  const computeUnlocked = (baseSet) => {
+  const computeUnlocked = useCallback((baseSet) => {
     const acc = new Set();
     const visible = new Set([
       ...(String(major).toUpperCase() === 'CS' ? graph.coreCS : graph.coreCSE),
@@ -50,9 +49,9 @@ export default function UnlockedCoursesGraph({ doneCodes = [], currentCodes = []
       if (ok) acc.add(up);
     }
     return acc;
-  };
+  }, [major, graph.coreCS, graph.coreCSE, graph.compCod, graph.prereqs, graph.softPrereqs, ignoreSoft]);
 
-  const applyStyles = (cy, baseSet, unlockedSet) => {
+  const applyStyles = useCallback((cy, baseSet, unlockedSet) => {
     cy.nodes().forEach((n) => {
       const id = String(n.id()).toUpperCase();
       n.removeClass('done unlocked locked hover dim');
@@ -64,9 +63,9 @@ export default function UnlockedCoursesGraph({ doneCodes = [], currentCodes = []
         n.addClass('locked');
       }
     });
-  };
+  }, []);
 
-  const computeUnlockPreview = (baseSet, currentUnlocked) => {
+  const computeUnlockPreview = useCallback((baseSet, currentUnlocked) => {
     const curr = currentUnlocked || computeUnlocked(baseSet);
     const map = {};
     for (const u of Array.from(curr)) {
@@ -75,24 +74,9 @@ export default function UnlockedCoursesGraph({ doneCodes = [], currentCodes = []
       map[u] = delta.sort();
     }
     setUnlockPreview(map);
-  };
+  }, [computeUnlocked]);
 
-  const runLayout = (cy) => {
-    if (!cy) return;
-    cy.layout({
-      name: 'dagre',
-      rankDir: 'LR',
-      ranker: 'network-simplex',
-      nodeSep: 150,
-      edgeSep: 120,
-      rankSep: 250,
-      animate: true,
-      animationDuration: 350,
-    }).run();
-    cy.fit(undefined, 40);
-  };
-
-  const applySearchFocus = (cy, code) => {
+  const applySearchFocus = useCallback((cy, code) => {
     if (!cy) return;
     cy.nodes().removeClass('search-hit search-neighbor faded');
     cy.edges().removeClass('search-link faded');
@@ -109,7 +93,7 @@ export default function UnlockedCoursesGraph({ doneCodes = [], currentCodes = []
     target.addClass('search-hit');
     neighborhood.nodes().not(target).addClass('search-neighbor');
     neighborhood.edges().addClass('search-link');
-  };
+  }, []);
 
   useEffect(() => {
     let mounted = true;
@@ -172,16 +156,17 @@ export default function UnlockedCoursesGraph({ doneCodes = [], currentCodes = []
       });
       cyRef.current = cy;
 
-      const baseSet = new Set([
-        ...doneSet,
-        ...(includeCurrent ? currentSet : [])
-      ]);
-      const unlockedSet = computeUnlocked(baseSet);
-      setUnlocked(unlockedSet);
-      applyStyles(cy, baseSet, unlockedSet);
-      computeUnlockPreview(baseSet, unlockedSet);
-      runLayout(cy);
-      applySearchFocus(cy, selectedCourse);
+      cy.layout({
+        name: 'dagre',
+        rankDir: 'LR',
+        ranker: 'network-simplex',
+        nodeSep: 150,
+        edgeSep: 120,
+        rankSep: 250,
+        animate: true,
+        animationDuration: 350,
+      }).run();
+      cy.fit(undefined, 40);
     });
     return () => { mounted = false; if (cyRef.current) { cyRef.current.destroy(); cyRef.current = null; } };
     
@@ -195,11 +180,10 @@ export default function UnlockedCoursesGraph({ doneCodes = [], currentCodes = []
       ...(includeCurrent ? currentSet : [])
     ]);
     const unlockedSet = computeUnlocked(baseSet);
-    setUnlocked(unlockedSet);
     applyStyles(cy, baseSet, unlockedSet);
     computeUnlockPreview(baseSet, unlockedSet);
     applySearchFocus(cy, selectedCourse);
-  }, [doneSet, currentSet, includeCurrent, ignoreSoft, major, graph.coreCSE, graph.coreCS, graph.compCod, graph.prereqs, graph.softPrereqs]);
+  }, [doneSet, currentSet, includeCurrent, ignoreSoft, major, graph.nodes.length, graph.coreCSE, graph.coreCS, graph.compCod, graph.prereqs, graph.softPrereqs, computeUnlocked, applyStyles, computeUnlockPreview, applySearchFocus, selectedCourse]);
 
   useEffect(() => {
     const cy = cyRef.current; if (!cy) return;
@@ -210,7 +194,7 @@ export default function UnlockedCoursesGraph({ doneCodes = [], currentCodes = []
       const ref = ele.popperRef ? ele.popperRef() : null;
       if (!ref) return;
       const content = document.createElement('div');
-      content.innerHTML = `<strong>${id}</strong><div style="font-size:12px;color:#bbb;">${title || ''}</div>${reqs ? `<div style=\"font-size:12px;color:#aaa;margin-top:4px\">Prereqs: ${reqs}</div>`:''}`;
+      content.innerHTML = `<strong>${id}</strong><div style="font-size:12px;color:#bbb;">${title || ''}</div>${reqs ? `<div style="font-size:12px;color:#aaa;margin-top:4px">Prereqs: ${reqs}</div>` : ''}`;
       const dummy = document.createElement('div');
       const tip = tippy(dummy, {
         getReferenceClientRect: ref.getBoundingClientRect,
@@ -247,7 +231,7 @@ export default function UnlockedCoursesGraph({ doneCodes = [], currentCodes = []
     const cy = cyRef.current;
     if (!cy) return;
     applySearchFocus(cy, selectedCourse);
-  }, [selectedCourse]);
+  }, [selectedCourse, applySearchFocus]);
 
   const handleFit = () => { const cy = cyRef.current; if (cy) cy.fit(); };
   const handleFindCourse = () => {
