@@ -21,9 +21,15 @@ export default function UnlockedCoursesGraph({ doneCodes = [], currentCodes = []
   const [unlockPreview, setUnlockPreview] = useState({}); 
   const [includeCurrent, setIncludeCurrent] = useState(true);
   const [ignoreSoft, setIgnoreSoft] = useState(false);
+  const [searchInput, setSearchInput] = useState('');
+  const [selectedCourse, setSelectedCourse] = useState('');
 
   const doneSet = useMemo(() => new Set((doneCodes || []).map((c) => String(c).toUpperCase())), [doneCodes]);
   const currentSet = useMemo(() => new Set((currentCodes || []).map((c) => String(c).toUpperCase())), [currentCodes]);
+  const visibleCourses = useMemo(() => {
+    const base = String(major).toUpperCase() === 'CS' ? graph.coreCS : graph.coreCSE;
+    return Array.from(new Set([...(base || []), ...(graph.compCod || [])].map((x) => String(x).toUpperCase()))).sort();
+  }, [major, graph.coreCS, graph.coreCSE, graph.compCod]);
 
   const computeUnlocked = (baseSet) => {
     const acc = new Set();
@@ -73,8 +79,36 @@ export default function UnlockedCoursesGraph({ doneCodes = [], currentCodes = []
 
   const runLayout = (cy) => {
     if (!cy) return;
-    cy.layout({ name: 'dagre', rankDir: 'LR', nodeSep: 90, edgeSep: 40, rankSep: 140, animate: true, animationDuration: 350 }).run();
-    cy.fit();
+    cy.layout({
+      name: 'dagre',
+      rankDir: 'LR',
+      ranker: 'network-simplex',
+      nodeSep: 150,
+      edgeSep: 120,
+      rankSep: 250,
+      animate: true,
+      animationDuration: 350,
+    }).run();
+    cy.fit(undefined, 40);
+  };
+
+  const applySearchFocus = (cy, code) => {
+    if (!cy) return;
+    cy.nodes().removeClass('search-hit search-neighbor faded');
+    cy.edges().removeClass('search-link faded');
+
+    const targetCode = String(code || '').toUpperCase().trim();
+    if (!targetCode) return;
+
+    const target = cy.getElementById(targetCode);
+    if (!target || target.empty()) return;
+
+    const neighborhood = target.closedNeighborhood();
+    cy.elements().addClass('faded');
+    neighborhood.removeClass('faded');
+    target.addClass('search-hit');
+    neighborhood.nodes().not(target).addClass('search-neighbor');
+    neighborhood.edges().addClass('search-link');
   };
 
   useEffect(() => {
@@ -89,19 +123,50 @@ export default function UnlockedCoursesGraph({ doneCodes = [], currentCodes = []
       const elements = [
         ...Array.from(visible).map((id) => ({ data: { id } })),
         ...g.edges.filter((e) => visible.has(String(e.from).toUpperCase()) && visible.has(String(e.to).toUpperCase()))
-                 .map((e) => ({ data: { id: `${e.from}->${e.to}`, source: e.from, target: e.to } })),
+                 .map((e) => ({ data: { id: `h:${e.from}->${e.to}`, source: e.from, target: e.to } })),
+        ...g.softEdges.filter((e) => visible.has(String(e.from).toUpperCase()) && visible.has(String(e.to).toUpperCase()))
+                     .map((e) => ({ data: { id: `s:${e.from}->${e.to}`, source: e.from, target: e.to }, classes: 'soft' })),
       ];
       const cy = cytoscape({
         container: containerRef.current,
         elements,
         style: [
-          { selector: 'node', style: { 'background-color': GRAY, 'label': 'data(id)', 'color': '#fff', 'text-valign': 'center', 'text-halign': 'center', 'font-size': 18, 'font-weight': '600', 'text-outline-width': 3, 'text-outline-color': '#0a0a0a', 'width': 96, 'height': 96, 'border-color': '#1f2937', 'border-width': 3, 'shape': 'ellipse' } },
-          { selector: 'edge', style: { 'width': 3, 'line-color': '#9aa0a6', 'target-arrow-color': '#9aa0a6', 'target-arrow-shape': 'triangle', 'curve-style': 'bezier' } },
+          { selector: 'node', style: { 'background-color': GRAY, 'label': 'data(id)', 'color': '#fff', 'text-valign': 'center', 'text-halign': 'center', 'font-size': 22, 'font-weight': '700', 'text-outline-width': 4, 'text-outline-color': '#0a0a0a', 'width': 124, 'height': 124, 'border-color': '#1f2937', 'border-width': 3, 'shape': 'ellipse' } },
+          {
+            selector: 'edge',
+            style: {
+              'width': 2.8,
+              'line-color': '#a0a8b7',
+              'target-arrow-color': '#a0a8b7',
+              'target-arrow-shape': 'triangle',
+              'arrow-scale': 1,
+              'curve-style': 'taxi',
+              'taxi-direction': 'rightward',
+              'taxi-turn': 42,
+              'opacity': 0.88,
+            },
+          },
+          {
+            selector: 'edge.soft',
+            style: {
+              'line-color': '#38bdf8',
+              'target-arrow-color': '#38bdf8',
+              'line-style': 'dashed',
+              'opacity': 0.45,
+              'width': 2,
+              'arrow-scale': 0.8,
+            },
+          },
           { selector: 'node.done', style: { 'background-color': BLUE, 'border-color': '#2f6eda' } },
           { selector: 'node.unlocked', style: { 'background-color': YELLOW, 'border-color': '#b08b00' } },
           { selector: 'node.locked', style: { 'background-color': GRAY } },
           { selector: 'node.hover', style: { 'border-width': 4 } },
           { selector: 'edge.highlight', style: { 'line-color': '#fff', 'width': 3, 'target-arrow-color': '#fff' } },
+          { selector: 'node.search-hit', style: { 'border-color': '#f97316', 'border-width': 6, 'shadow-blur': 28, 'shadow-color': '#f97316', 'shadow-opacity': 0.65 } },
+          { selector: 'node.search-neighbor', style: { 'border-color': '#22d3ee', 'border-width': 4 } },
+          { selector: 'edge.search-link', style: { 'line-color': '#f59e0b', 'target-arrow-color': '#f59e0b', 'width': 3.2, 'opacity': 1 } },
+          { selector: 'node.faded', style: { 'opacity': 0.16 } },
+          { selector: 'edge.faded', style: { 'opacity': 0.12 } },
           { selector: 'node.dim', style: { 'opacity': 0.35 } },
         ],
       });
@@ -116,6 +181,7 @@ export default function UnlockedCoursesGraph({ doneCodes = [], currentCodes = []
       applyStyles(cy, baseSet, unlockedSet);
       computeUnlockPreview(baseSet, unlockedSet);
       runLayout(cy);
+      applySearchFocus(cy, selectedCourse);
     });
     return () => { mounted = false; if (cyRef.current) { cyRef.current.destroy(); cyRef.current = null; } };
     
@@ -123,6 +189,7 @@ export default function UnlockedCoursesGraph({ doneCodes = [], currentCodes = []
 
   useEffect(() => {
     const cy = cyRef.current; if (!cy || graph.nodes.length === 0) return;
+    cy.edges('.soft').style('display', ignoreSoft ? 'none' : 'element');
     const baseSet = new Set([
       ...doneSet,
       ...(includeCurrent ? currentSet : [])
@@ -131,6 +198,7 @@ export default function UnlockedCoursesGraph({ doneCodes = [], currentCodes = []
     setUnlocked(unlockedSet);
     applyStyles(cy, baseSet, unlockedSet);
     computeUnlockPreview(baseSet, unlockedSet);
+    applySearchFocus(cy, selectedCourse);
   }, [doneSet, currentSet, includeCurrent, ignoreSoft, major, graph.coreCSE, graph.coreCS, graph.compCod, graph.prereqs, graph.softPrereqs]);
 
   useEffect(() => {
@@ -175,7 +243,29 @@ export default function UnlockedCoursesGraph({ doneCodes = [], currentCodes = []
     return () => { if (!cy) return; cy.removeListener('mouseover', 'node', onOver); cy.removeListener('mouseout', 'node', onOut); cy.nodes().forEach((n) => { if (n.tippy) { n.tippy.destroy(); delete n.tippy; } }); };
   }, [graph]);
 
+  useEffect(() => {
+    const cy = cyRef.current;
+    if (!cy) return;
+    applySearchFocus(cy, selectedCourse);
+  }, [selectedCourse]);
+
   const handleFit = () => { const cy = cyRef.current; if (cy) cy.fit(); };
+  const handleFindCourse = () => {
+    const code = String(searchInput || '').toUpperCase().trim();
+    setSelectedCourse(code);
+    const cy = cyRef.current;
+    if (!cy || !code) return;
+    const target = cy.getElementById(code);
+    if (!target || target.empty()) return;
+    const area = target.closedNeighborhood();
+    cy.animate({ fit: { eles: area, padding: 120 }, duration: 350 });
+  };
+  const handleClearSearch = () => {
+    setSearchInput('');
+    setSelectedCourse('');
+    const cy = cyRef.current;
+    if (cy) cy.fit(undefined, 70);
+  };
 
   return (
     <div
@@ -188,7 +278,7 @@ export default function UnlockedCoursesGraph({ doneCodes = [], currentCodes = []
       }}
     >
       <h3 className="panel-title" style={{ color: '#dbeafe' }}>Unlocked Courses ({String(major).toUpperCase()} Core)</h3>
-      <div style={{ display: 'grid', gridTemplateColumns: 'minmax(320px, 380px) 1fr', gap: '0.75rem', alignItems: 'start' }}>
+      <div style={{ display: 'grid', gap: '0.75rem' }}>
         
         <div className="panel" style={{ background: 'linear-gradient(180deg, rgba(2,6,23,0.95), rgba(15,23,42,0.92))', border: '1px solid #475569', borderRadius: 12 }}>
           <div style={{ display: 'flex', gap: '0.5rem', alignItems: 'center', flexWrap: 'wrap' }}>
@@ -223,11 +313,32 @@ export default function UnlockedCoursesGraph({ doneCodes = [], currentCodes = []
         </div>
 
         
-        <div style={{ display: 'grid', gap: '0.5rem' }}>
+        <div className="panel" style={{ display: 'grid', gap: '0.5rem', background: 'linear-gradient(180deg, rgba(2,6,23,0.94), rgba(15,23,42,0.88))', border: '1px solid #334155', borderRadius: 12 }}>
           <div style={{ display: 'flex', gap: '0.75rem', alignItems: 'center', flexWrap: 'wrap' }}>
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><span style={{ width: 14, height: 14, background: BLUE, borderRadius: 7 }}></span><span className="text-muted">Done</span></span>
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><span style={{ width: 14, height: 14, background: YELLOW, borderRadius: 7 }}></span><span className="text-muted">Unlocked</span></span>
-            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><span style={{ width: 14, height: 14, background: GRAY, borderRadius: 7 }}></span><span className="text-muted">Locked</span></span>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><span style={{ width: 16, height: 16, background: BLUE, borderRadius: 8 }}></span><span className="text-muted">Done</span></span>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><span style={{ width: 16, height: 16, background: YELLOW, borderRadius: 8 }}></span><span className="text-muted">Unlocked</span></span>
+            <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }}><span style={{ width: 16, height: 16, background: GRAY, borderRadius: 8 }}></span><span className="text-muted">Locked</span></span>
+            <input
+              list="graph-course-search"
+              className="input"
+              value={searchInput}
+              onChange={(e) => setSearchInput(e.target.value)}
+              onKeyDown={(e) => {
+                if (e.key === 'Enter') {
+                  e.preventDefault();
+                  handleFindCourse();
+                }
+              }}
+              placeholder="Search course code"
+              style={{ minWidth: 180, maxWidth: 230, height: 40 }}
+            />
+            <datalist id="graph-course-search">
+              {visibleCourses.map((code) => (
+                <option key={code} value={code} />
+              ))}
+            </datalist>
+            <button className="button" type="button" onClick={handleFindCourse}>Find</button>
+            <button className="button" type="button" onClick={handleClearSearch}>Clear</button>
             <label style={{ display: 'inline-flex', alignItems: 'center', gap: 8, marginLeft: 12 }}>
               <input type="checkbox" checked={includeCurrent} onChange={(e) => setIncludeCurrent(e.target.checked)} />
               <span className="text-muted">Include current-term courses</span>
@@ -238,7 +349,17 @@ export default function UnlockedCoursesGraph({ doneCodes = [], currentCodes = []
             </label>
             <button className="button" type="button" onClick={handleFit} style={{ marginLeft: 'auto' }}>Fit</button>
           </div>
-          <div ref={containerRef} style={{ width: '100%', height: 800, borderRadius: 12, background: '#0f0f0f', border: '1px solid #222', position: 'relative' }} />
+          <div
+            ref={containerRef}
+            style={{
+              width: '100%',
+              height: 'clamp(780px, 82vh, 1200px)',
+              borderRadius: 12,
+              background: '#0f0f0f',
+              border: '1px solid #222',
+              position: 'relative',
+            }}
+          />
         </div>
       </div>
     </div>

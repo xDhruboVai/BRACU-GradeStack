@@ -37,7 +37,7 @@ const PREQ_FORWARD = {
   'CSE230': [],
   'CSE250': ['CSE251'],
   'CSE251': ['CSE260', 'CSE350'],
-  'CSE260': ['CSE340', 'CSE341', 'CSE460', 'CSE461'],
+  'CSE260': ['CSE340', 'CSE460', 'CSE461'],
   'CSE340': ['CSE420'],
   'CSE341': ['CSE360', 'CSE461'],
   'CSE320': [],
