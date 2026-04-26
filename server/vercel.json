@@ -1,16 +1,5 @@
 {
   "version": 2,
-  "functions": {
-    "api/index.js": {
-      "runtime": "@vercel/node"
-    },
-    "api/parse.py": {
-      "runtime": "@vercel/python"
-    },
-    "api/parse-and-save.py": {
-      "runtime": "@vercel/python"
-    }
-  },
   "routes": [
     {
       "src": "^/api/parse$",
