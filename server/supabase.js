@@ -7,23 +7,4 @@ const supabase = createClient(
     process.env.SUPABASE_SERVICE_ROLE_KEY
 );
 
-
-async function testConnection() {
-    try {
-        const { data, error } = await supabase
-            .from('user_profiles')
-            .select('count');
-
-        if (error) {
-            console.error('xxxxxxx Supabase connection failed:', error.message);
-        } else {
-            console.log('Connected to Supabase successfully!');
-        }
-    } catch (err) {
-        console.error('xxxxxxxx Error connecting to Supabase:', err.message);
-    }
-}
-
-testConnection();
-
 module.exports = { supabase };
